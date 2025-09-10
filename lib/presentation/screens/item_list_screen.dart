@@ -1,7 +1,7 @@
 import 'package:swan_sync/presentation/widgets/synced_list_view.dart';
 import 'package:swan_sync/presentation/widgets/snapshot_error.dart';
 import 'package:swan_sync/presentation/widgets/no_items.dart';
-import 'package:swan_sync/data/core/service_locator.dart';
+import 'package:swan_sync/communications/core/service_locator.dart';
 import 'package:swan_sync/data/models/item_model.dart';
 
 import 'package:flutter/material.dart';

@@ -1,7 +1,7 @@
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:swan_sync/presentation/screens/item_list_screen.dart';
-import 'package:swan_sync/business_logic/platforms_data_mixin.dart';
-import 'package:swan_sync/data/core/service_locator.dart';
+import 'package:swan_sync/communications/platforms_data_mixin.dart';
+import 'package:swan_sync/communications/core/service_locator.dart';
 import 'package:swan_sync/main.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';

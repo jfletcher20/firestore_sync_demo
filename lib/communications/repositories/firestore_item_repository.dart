@@ -1,5 +1,5 @@
 import 'package:swan_sync/data/models/item_model.dart';
-import 'package:swan_sync/data/repositories/i_item_repository.dart';
+import 'package:swan_sync/communications/repositories/i_item_repository.dart';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -16,7 +16,6 @@ class FirestoreItemRepository implements IItemRepository {
 
   @override
   String getCurrentUserId() {
-    // Use Firebase installation ID as user identifier
     return _auth.currentUser?.uid ?? MainApp.deviceName;
   }
 
@@ -27,10 +26,10 @@ class FirestoreItemRepository implements IItemRepository {
         .orderBy(ItemModelKeys.createdAt.name, descending: true)
         .snapshots()
         .map((snapshot) {
-          return snapshot.docs.map((doc) {
-            return ItemModel.fromFirestore(doc.data(), doc.id);
-          }).toList();
-        });
+      return snapshot.docs.map((doc) {
+        return ItemModel.fromFirestore(doc.data(), doc.id);
+      }).toList();
+    });
   }
 
   @override

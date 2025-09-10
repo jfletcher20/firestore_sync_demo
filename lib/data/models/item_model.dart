@@ -1,4 +1,4 @@
-import 'package:swan_sync/data/models/i_data_model.dart';
+import 'package:swan_sync/data/i_data_model.dart';
 
 class ItemModel implements IDataModel {
   final String id;
@@ -18,10 +18,10 @@ class ItemModel implements IDataModel {
   factory ItemModel.fromFirestore(Map<String, dynamic> data, String documentId) {
     return ItemModel(
       id: documentId,
-      name: data['name'] ?? '',
-      userId: data['userId'] ?? '',
-      createdAt: DateTime.fromMillisecondsSinceEpoch(data['createdAt'] ?? 0),
-      updatedAt: DateTime.fromMillisecondsSinceEpoch(data['updatedAt'] ?? 0),
+      name: data[ItemModelKeys.name.name] ?? '',
+      userId: data[ItemModelKeys.userId.name] ?? '',
+      createdAt: DateTime.fromMillisecondsSinceEpoch(data[ItemModelKeys.createdAt.name] ?? 0),
+      updatedAt: DateTime.fromMillisecondsSinceEpoch(data[ItemModelKeys.updatedAt.name] ?? 0),
     );
   }
 

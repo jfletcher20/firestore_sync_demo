@@ -1,4 +1,4 @@
-import 'package:swan_sync/data/repositories/i_item_repository.dart';
+import 'package:swan_sync/communications/repositories/i_item_repository.dart';
 import 'package:swan_sync/data/models/item_model.dart';
 
 import 'dart:async';

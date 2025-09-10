@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "203194717000",
+    "project_id": "swan-sync",
+    "storage_bucket": "swan-sync.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:203194717000:android:582ec9312955d8fc43197d",
+        "android_client_info": {
+          "package_name": "hr.foi.swan_sync"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBhITIqel_THc7UwEHeqjcBHurmQHpPjl0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,3 +1,3 @@
-# swan_sync
+# SWAN Sync
 
-A new Flutter project.
+Demonstration of synchronization solution integration in Flutter.

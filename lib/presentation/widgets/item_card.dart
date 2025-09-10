@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:swan_sync/data/models/item_model.dart';
 import 'package:swan_sync/presentation/widgets/item_info.dart';
-import 'package:swan_sync/presentation/widgets/random_icon.dart';
+import 'package:swan_sync/presentation/widgets/entry_icon.dart';
 import 'package:swan_sync/presentation/widgets/user_label.dart';
 
 class ItemCard extends StatefulWidget {
@@ -53,7 +53,7 @@ class _ItemCardState extends State<ItemCard> {
                       Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          if (!_isEditing) RandomIcon(randomFactor: widget.item.id),
+                          if (!_isEditing) EntryDecorator(identifier: widget.item.id),
                           if (_isEditing)
                             SizedBox(
                               width: MediaQuery.of(context).size.width * .5,

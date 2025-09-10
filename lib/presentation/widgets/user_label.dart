@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:swan_sync/presentation/widgets/random_icon.dart';
+import 'package:swan_sync/presentation/widgets/entry_icon.dart';
 
 class UserLabel extends StatelessWidget {
   final String userId;
@@ -14,7 +14,7 @@ class UserLabel extends StatelessWidget {
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
-          color: RandomIcon.randomColor(userId),
+          color: EntryDecorator.color(userId),
           borderRadius: const BorderRadius.only(
             bottomLeft: Radius.circular(16),
             topRight: Radius.circular(8),
@@ -25,7 +25,7 @@ class UserLabel extends StatelessWidget {
             children: [
               WidgetSpan(child: const Icon(Icons.person, size: 16, color: Colors.white)),
               TextSpan(
-                text: RandomIcon.obfuscatedUserId(userId.isEmpty ? '' : userId),
+                text: EntryDecorator.obfuscatedUserId(userId.isEmpty ? '' : userId),
                 style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,

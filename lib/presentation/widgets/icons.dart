@@ -1,4 +1,4 @@
-part of 'random_icon.dart';
+part of 'entry_icon.dart';
 
 Set<IconData> fullIconsList = {
   Icons.ten_k,

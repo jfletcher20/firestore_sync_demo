@@ -4,21 +4,21 @@ import 'package:flutter/material.dart';
 
 part 'icons.dart';
 
-class RandomIcon extends StatelessWidget {
-  final String randomFactor;
-  const RandomIcon({super.key, required this.randomFactor});
-  IconData get randomIcon {
+class EntryDecorator extends StatelessWidget {
+  final String identifier;
+  const EntryDecorator({super.key, required this.identifier});
+  IconData get icon {
     // use the string to generate a integer that's always unique to the string
     // using the int, let that be the seed for random
     // generate a random number using that seed, with fullIconsList's length as the end boundary
     // return the randomly chosen icon
-    final hash = randomFactor.codeUnits.fold<int>(0, (p, c) => 0x1fffffff & (p * 31 + c));
+    final hash = identifier.codeUnits.fold<int>(0, (p, c) => 0x1fffffff & (p * 31 + c));
     if (fullIconsList.isEmpty) return Icons.help_outline;
     final index = Random(hash).nextInt(fullIconsList.length);
     return fullIconsList.elementAt(index);
   }
 
-  static Color randomColor(String factor) {
+  static Color color(String factor) {
     final hash = factor.codeUnits.fold<int>(0, (p, c) => 0x1fffffff & (p * 31 + c));
     final rand = Random(hash);
     return Color.fromARGB(
@@ -39,5 +39,5 @@ class RandomIcon extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) => Icon(randomIcon);
+  Widget build(BuildContext context) => Icon(icon);
 }

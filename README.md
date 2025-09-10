@@ -1,3 +1,3 @@
-# SWAN Sync
+# Firestore Sync demo
 
-Demonstration of synchronization solution integration in Flutter.
+Demonstration of an existing synchronization solution's integration in Flutter.

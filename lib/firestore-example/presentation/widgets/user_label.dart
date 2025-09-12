@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:swan_sync/presentation/widgets/entry_icon.dart';
+import 'package:swan_sync/firestore-example/presentation/widgets/entry_icon.dart';
 
 class UserLabel extends StatelessWidget {
   final String userId;

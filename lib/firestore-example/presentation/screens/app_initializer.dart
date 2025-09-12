@@ -1,8 +1,8 @@
 import 'package:device_info_plus/device_info_plus.dart';
-import 'package:swan_sync/presentation/screens/item_list_screen.dart';
-import 'package:swan_sync/communications/platforms_data_mixin.dart';
-import 'package:swan_sync/communications/core/service_locator.dart';
-import 'package:swan_sync/main.dart';
+import 'package:swan_sync/firestore-example/presentation/screens/item_list_screen.dart';
+import 'package:swan_sync/firestore-example/communications/platforms_data_mixin.dart';
+import 'package:swan_sync/firestore-example/communications/core/service_locator.dart';
+import 'package:swan_sync/firestore-example/firestore-example.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 

@@ -1,5 +1,5 @@
-import 'package:swan_sync/presentation/widgets/item_card.dart';
-import 'package:swan_sync/data/models/item_model.dart';
+import 'package:swan_sync/firestore-example/presentation/widgets/item_card.dart';
+import 'package:swan_sync/firestore-example/data/models/item_model.dart';
 
 import 'package:flutter/material.dart';
 

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:swan_sync/data/models/item_model.dart';
-import 'package:swan_sync/presentation/widgets/item_info.dart';
-import 'package:swan_sync/presentation/widgets/entry_icon.dart';
-import 'package:swan_sync/presentation/widgets/user_label.dart';
+import 'package:swan_sync/firestore-example/data/models/item_model.dart';
+import 'package:swan_sync/firestore-example/presentation/widgets/item_info.dart';
+import 'package:swan_sync/firestore-example/presentation/widgets/entry_icon.dart';
+import 'package:swan_sync/firestore-example/presentation/widgets/user_label.dart';
 
 class ItemCard extends StatefulWidget {
   final ItemModel item;

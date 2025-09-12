@@ -1,6 +1,6 @@
-import 'package:swan_sync/communications/repositories/firestore_item_repository.dart';
-import 'package:swan_sync/communications/services/item_service.dart';
-import 'package:swan_sync/communications/repositories/i_item_repository.dart';
+import 'package:swan_sync/firestore-example/communications/repositories/firestore_item_repository.dart';
+import 'package:swan_sync/firestore-example/communications/services/item_service.dart';
+import 'package:swan_sync/firestore-example/communications/repositories/i_item_repository.dart';
 
 class ServiceLocator {
   static final ServiceLocator _instance = ServiceLocator._internal();

@@ -1,4 +1,4 @@
-import 'package:swan_sync/data/i_data_model.dart';
+import 'package:swan_sync/firestore-example/data/i_data_model.dart';
 
 class ItemModel implements IDataModel {
   final String id;

@@ -1,5 +1,5 @@
-import 'package:swan_sync/data/models/item_model.dart';
-import 'package:swan_sync/communications/repositories/i_item_repository.dart';
+import 'package:swan_sync/firestore-example/data/models/item_model.dart';
+import 'package:swan_sync/firestore-example/communications/repositories/i_item_repository.dart';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -7,7 +7,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 import 'dart:async';
 
-import 'package:swan_sync/main.dart';
+import 'package:swan_sync/firestore-example/firestore-example.dart';
 
 class FirestoreItemRepository implements IItemRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -26,10 +26,10 @@ class FirestoreItemRepository implements IItemRepository {
         .orderBy(ItemModelKeys.createdAt.name, descending: true)
         .snapshots()
         .map((snapshot) {
-      return snapshot.docs.map((doc) {
-        return ItemModel.fromFirestore(doc.data(), doc.id);
-      }).toList();
-    });
+          return snapshot.docs.map((doc) {
+            return ItemModel.fromFirestore(doc.data(), doc.id);
+          }).toList();
+        });
   }
 
   @override

@@ -1,5 +1,5 @@
-import 'package:swan_sync/communications/repositories/i_item_repository.dart';
-import 'package:swan_sync/data/models/item_model.dart';
+import 'package:swan_sync/firestore-example/communications/repositories/i_item_repository.dart';
+import 'package:swan_sync/firestore-example/data/models/item_model.dart';
 
 import 'dart:async';
 

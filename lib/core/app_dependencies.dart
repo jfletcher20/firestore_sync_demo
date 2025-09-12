@@ -25,11 +25,8 @@ class AppDependencies {
     apiService = ApiService();
     localDatabaseService = LocalDatabaseService();
     fallbackQueueService = FallbackQueueService();
-
-    // Initialize controllers
     syncController = SyncController();
 
-    // Initialize services in order
     await localDatabaseService.initialize();
     await fcmService.initialize();
     await fallbackQueueService.initialize();

@@ -54,7 +54,10 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final json = jsonDecode(response.body);
-        final item = SyncDataModel.fromServerResponse(json, json['tableName'] ?? 'testData');
+        final item = SyncDataModel.fromServerResponse(
+          json['data'],
+          json['tableName'] ?? 'testData',
+        );
 
         developer.log('Successfully fetched item: $item', name: 'ApiService');
         return item;

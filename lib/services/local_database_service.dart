@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:developer' as developer;
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:swan_sync/services/api_service.dart';
 import '../models/sync_data_model.dart';
 
 class LocalDatabaseService {
@@ -117,20 +118,19 @@ class LocalDatabaseService {
     try {
       developer.log('Handling incoming data: ${incomingData.uuid}', name: 'LocalDatabaseService');
 
+      var serverEntry = await ApiService().getById(incomingData.entryId ?? incomingData.oid ?? '');
+      print('Server entry: $serverEntry');
+
       final box = await _getBox(incomingData.tableName);
       final existingItem = box.get(incomingData.uuid);
 
       if (existingItem == null) {
-        // No local copy exists, store the incoming data
-        final itemToStore = incomingData.copyWith(needsSync: false);
-        await box.put(incomingData.uuid, itemToStore);
-
-        developer.log('Stored new item: ${incomingData.uuid}', name: 'LocalDatabaseService');
+        final itemToStore = serverEntry.copyWith(needsSync: false);
+        await box.put(serverEntry.uuid, itemToStore);
+        developer.log('Stored new item: ${serverEntry.uuid}', name: 'LocalDatabaseService');
         return SyncConflictResult.stored;
       }
-
-      // Item exists locally, resolve conflict
-      return await _resolveConflict(box, existingItem, incomingData);
+      return await _resolveConflict(box, existingItem, serverEntry);
     } catch (e) {
       developer.log('Error handling incoming data: $e', name: 'LocalDatabaseService');
       return SyncConflictResult.error;
@@ -144,35 +144,26 @@ class LocalDatabaseService {
     SyncDataModel incomingData,
   ) async {
     developer.log('Resolving conflict for: ${localItem.uuid}', name: 'LocalDatabaseService');
-
-    // If incoming data is a delete operation
     if (incomingData.isDeleted) {
       if (localItem.isNewerThan(incomingData)) {
-        // Local item is newer, send update to server
         developer.log(
           'Local item is newer than delete, needs server update',
           name: 'LocalDatabaseService',
         );
         return SyncConflictResult.needsServerUpdate;
       } else {
-        // Accept the delete
         await box.put(localItem.uuid, incomingData.copyWith(needsSync: false));
         developer.log('Accepted delete for: ${localItem.uuid}', name: 'LocalDatabaseService');
         return SyncConflictResult.stored;
       }
     }
-
-    // Compare timestamps
     if (localItem.isNewerThan(incomingData)) {
-      // Local is newer
       if (localItem.hasSameDataAs(incomingData)) {
-        // Same data, just update timestamps to match server
         final updatedItem = localItem.copyWith(updatedAt: incomingData.updatedAt, needsSync: false);
         await box.put(localItem.uuid, updatedItem);
         developer.log('Updated timestamps for: ${localItem.uuid}', name: 'LocalDatabaseService');
         return SyncConflictResult.timestampUpdated;
       } else {
-        // Different data, local is newer - need to send to server
         developer.log(
           'Local data is newer, needs server update: ${localItem.uuid}',
           name: 'LocalDatabaseService',
@@ -180,15 +171,12 @@ class LocalDatabaseService {
         return SyncConflictResult.needsServerUpdate;
       }
     } else {
-      // Incoming data is newer or same timestamp
       if (localItem.hasSameDataAs(incomingData)) {
-        // Same data, just update timestamps
         final updatedItem = localItem.copyWith(updatedAt: incomingData.updatedAt, needsSync: false);
         await box.put(localItem.uuid, updatedItem);
         developer.log('Updated timestamps for: ${localItem.uuid}', name: 'LocalDatabaseService');
         return SyncConflictResult.timestampUpdated;
       } else {
-        // Different data, incoming is newer - store incoming data
         final updatedItem = incomingData.copyWith(needsSync: false);
         await box.put(localItem.uuid, updatedItem);
         developer.log(
@@ -200,19 +188,18 @@ class LocalDatabaseService {
     }
   }
 
-  /// Create a new item locally (will need to be synced)
-  Future<SyncDataModel> createItem(String tableName, Map<String, dynamic> data) async {
+  Future<SyncDataModel> createItem(String tableName, String name, String description) async {
     try {
       final now = DateTime.now();
       final item = SyncDataModel(
         uuid: _generateUuid(),
         tableName: tableName,
-        data: data,
+        name: name,
+        description: description,
         createdAt: now,
         updatedAt: now,
         needsSync: true,
       );
-
       await storeItem(item);
       developer.log('Created new local item: ${item.uuid}', name: 'LocalDatabaseService');
       return item;
@@ -222,28 +209,26 @@ class LocalDatabaseService {
     }
   }
 
-  /// Update an existing item locally (will need to be synced)
   Future<SyncDataModel?> updateItem(
     String tableName,
     String uuid,
-    Map<String, dynamic> data,
+    String name,
+    String description,
   ) async {
     try {
       final box = await _getBox(tableName);
       final existingItem = box.get(uuid);
-
       if (existingItem == null) {
         developer.log('Item not found for update: $uuid', name: 'LocalDatabaseService');
-        // then insert the item instead
-        return await createItem(tableName, data);
+        return await createItem(tableName, name, description);
       }
 
       final updatedItem = existingItem.copyWith(
-        data: data,
+        name: name,
+        description: description,
         updatedAt: DateTime.now(),
         needsSync: true,
       );
-
       await box.put(uuid, updatedItem);
       developer.log('Updated local item: $uuid', name: 'LocalDatabaseService');
       return updatedItem;
@@ -253,12 +238,10 @@ class LocalDatabaseService {
     }
   }
 
-  /// Mark an item as synced (no longer needs sync)
   Future<void> markItemAsSynced(String tableName, String uuid, {String? serverEntryId}) async {
     try {
       final box = await _getBox(tableName);
       final item = box.get(uuid);
-
       if (item != null) {
         final syncedItem = item.copyWith(
           needsSync: false,
@@ -273,7 +256,6 @@ class LocalDatabaseService {
     }
   }
 
-  /// Get stream of changes for a specific table
   Stream<List<SyncDataModel>> watchTable(String tableName) {
     return Stream.fromFuture(_getBox(tableName)).asyncExpand(
       (box) => box.watch().map((_) => box.values.where((item) => !item.isDeleted).toList()),

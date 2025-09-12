@@ -1,10 +1,10 @@
-import 'package:flutter/material.dart';
+import 'package:swan_sync/screens/sync_demo_screen.dart';
+import 'package:swan_sync/core/app_dependencies.dart';
+import 'package:swan_sync/firebase_options.dart';
+
 import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
-import 'firebase_options.dart';
-import 'core/app_dependencies.dart';
-import 'screens/sync_demo_screen.dart';
-import 'services/fcm_messaging_service.dart';
+
+import 'package:flutter/material.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -47,10 +47,6 @@ class _AppInitializerState extends State<AppInitializer> {
       await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
     }
 
-    // Set up FCM background message handler
-    FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
-
-    // Initialize all app dependencies
     await AppDependencies().initialize();
   }
 

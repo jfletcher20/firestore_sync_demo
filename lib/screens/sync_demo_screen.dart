@@ -12,11 +12,13 @@ class SyncDemoScreen extends StatefulWidget {
 class _SyncDemoScreenState extends State<SyncDemoScreen> {
   final SyncController _syncController = SyncController();
   final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _descriptionController = TextEditingController();
   static const String tableName = 'testData';
 
   @override
   void dispose() {
     _nameController.dispose();
+    _descriptionController.dispose();
     super.dispose();
   }
 
@@ -125,7 +127,19 @@ class _SyncDemoScreenState extends State<SyncDemoScreen> {
                       hintText: 'Enter item name',
                       border: OutlineInputBorder(),
                     ),
-                    onSubmitted: (_) => _addItem(),
+                  ),
+                ),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: 8.0),
+                    child: TextField(
+                      controller: _descriptionController,
+                      decoration: const InputDecoration(
+                        hintText: 'Enter item description',
+                        border: OutlineInputBorder(),
+                      ),
+                      onSubmitted: (_) => _addItem(),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -184,7 +198,7 @@ class _SyncDemoScreenState extends State<SyncDemoScreen> {
             final item = items[index];
             return _ItemCard(
               item: item,
-              onUpdate: (name) => _updateItem(item.uuid, name),
+              onUpdate: (name) => _updateItem(item.uuid, name, item.description),
               onDelete: () => _deleteItem(item.uuid),
             );
           },
@@ -195,11 +209,13 @@ class _SyncDemoScreenState extends State<SyncDemoScreen> {
 
   Future<void> _addItem() async {
     final name = _nameController.text.trim();
-    if (name.isEmpty) return;
+    final description = _descriptionController.text.trim();
+    if (name.isEmpty || description.isEmpty) return;
 
     try {
-      await _syncController.createLocalItem(tableName, {'name': name});
+      await _syncController.createLocalItem(tableName, name, description);
       _nameController.clear();
+      _descriptionController.clear();
 
       if (mounted) {
         ScaffoldMessenger.of(
@@ -215,9 +231,9 @@ class _SyncDemoScreenState extends State<SyncDemoScreen> {
     }
   }
 
-  Future<void> _updateItem(String uuid, String name) async {
+  Future<void> _updateItem(String uuid, String name, String description) async {
     try {
-      await _syncController.updateLocalItem(tableName, uuid, {'name': name});
+      await _syncController.updateLocalItem(tableName, uuid, name, description);
 
       if (mounted) {
         ScaffoldMessenger.of(
@@ -306,7 +322,7 @@ class _ItemCardState extends State<_ItemCard> {
   @override
   void initState() {
     super.initState();
-    _controller = TextEditingController(text: widget.item.data['name'] ?? '');
+    _controller = TextEditingController(text: widget.item.name);
   }
 
   @override
@@ -337,7 +353,7 @@ class _ItemCardState extends State<_ItemCard> {
                           : GestureDetector(
                             onTap: () => setState(() => _isEditing = true),
                             child: Text(
-                              widget.item.data['name'] ?? 'Unnamed',
+                              widget.item.name,
                               style: Theme.of(context).textTheme.titleMedium,
                             ),
                           ),
@@ -362,6 +378,7 @@ class _ItemCardState extends State<_ItemCard> {
               ],
             ),
             const SizedBox(height: 8),
+            _buildInfoRow('Description:', widget.item.description),
             _buildInfoRow('UUID:', widget.item.uuid),
             if (widget.item.entryId != null) _buildInfoRow('Server ID:', widget.item.entryId!),
             _buildInfoRow('Table:', widget.item.tableName),
@@ -410,14 +427,14 @@ class _ItemCardState extends State<_ItemCard> {
 
   void _saveEdit(String value) {
     final name = value.trim();
-    if (name.isNotEmpty && name != widget.item.data['name']) {
+    if (name.isNotEmpty && name != widget.item.name) {
       widget.onUpdate(name);
     }
     setState(() => _isEditing = false);
   }
 
   void _cancelEdit() {
-    _controller.text = widget.item.data['name'] ?? '';
+    _controller.text = widget.item.name;
     setState(() => _isEditing = false);
   }
 
@@ -427,7 +444,7 @@ class _ItemCardState extends State<_ItemCard> {
       builder:
           (context) => AlertDialog(
             title: const Text('Delete Item'),
-            content: Text('Are you sure you want to delete "${widget.item.data['name']}"?'),
+            content: Text('Are you sure you want to delete "${widget.item.name}"?'),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(false),

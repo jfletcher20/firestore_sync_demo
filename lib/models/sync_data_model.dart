@@ -16,7 +16,10 @@ class SyncDataModel extends HiveObject {
   final String tableName; // Which Hive box this belongs to
 
   @HiveField(3)
-  final Map<String, dynamic> data; // The actual data payload
+  final String name; // Name of the item
+
+  @HiveField(9)
+  final String description; // Description of the item
 
   @HiveField(4)
   final DateTime createdAt;
@@ -37,7 +40,8 @@ class SyncDataModel extends HiveObject {
     this.entryId,
     required this.uuid,
     required this.tableName,
-    required this.data,
+    required this.name,
+    required this.description,
     required this.createdAt,
     required this.updatedAt,
     this.oid,
@@ -54,10 +58,12 @@ class SyncDataModel extends HiveObject {
       entryId: payload['entryId']?.toString(),
       uuid: payload['uuid'] ?? '',
       tableName: payload['tableName'] ?? 'unknown',
-      data: payload['data'] ?? {},
+      name: payload['name'] ?? 'unknown',
+      description: payload['description'] ?? '-',
       createdAt: DateTime.tryParse(payload['createdAt'] ?? '') ?? DateTime.now(),
       updatedAt: DateTime.tryParse(payload['updatedAt'] ?? '') ?? DateTime.now(),
-      oid: payload['id']?.toString() ?? payload['oid']?.toString(),
+      oid:
+          payload['id']?.toString() ?? payload['oid']?.toString() ?? payload['entryId']?.toString(),
       isDeleted: payload['delete'] == 'true' || payload['delete'] == true,
     );
   }
@@ -66,36 +72,38 @@ class SyncDataModel extends HiveObject {
   factory SyncDataModel.fromServerResponse(Map<String, dynamic> response, String tableName) {
     print('Server response: $response');
     return SyncDataModel(
-      entryId: response['entryId']?.toString() ?? response['id']?.toString(),
+      entryId: response['entryId'] ?? '',
       uuid: response['uuid'] ?? '',
       tableName: tableName,
-      data: response['data'] ?? response,
+      name: response['name'] ?? 'unknown',
+      description: response['description'] ?? '-',
       createdAt: DateTime.tryParse(response['createdAt'] ?? '') ?? DateTime.now(),
       updatedAt: DateTime.tryParse(response['updatedAt'] ?? '') ?? DateTime.now(),
       oid:
-          response['id']?.toString() ??
           response['oid']?.toString() ??
+          response['id']?.toString() ??
           response['entryId']?.toString(),
       isDeleted: response['delete'] == true || response['delete'] == 'true',
     );
   }
 
-  /// Convert to server API format
   Map<String, dynamic> toServerFormat() {
     return {
       'uuid': uuid,
-      'data': data,
+      'tableName': tableName,
+      'name': name,
+      'description': description,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
     };
   }
 
-  /// Create a copy with updated fields
   SyncDataModel copyWith({
     String? entryId,
     String? uuid,
     String? tableName,
-    Map<String, dynamic>? data,
+    String? name,
+    String? description,
     DateTime? createdAt,
     DateTime? updatedAt,
     String? oid,
@@ -106,7 +114,8 @@ class SyncDataModel extends HiveObject {
       entryId: entryId ?? this.entryId,
       uuid: uuid ?? this.uuid,
       tableName: tableName ?? this.tableName,
-      data: data ?? Map<String, dynamic>.from(this.data),
+      name: name ?? this.name,
+      description: description ?? this.description,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       oid: oid ?? this.oid,
@@ -115,28 +124,17 @@ class SyncDataModel extends HiveObject {
     );
   }
 
-  /// Check if this item is newer than another
-  bool isNewerThan(SyncDataModel other) {
-    return updatedAt.isAfter(other.updatedAt);
-  }
+  bool isNewerThan(SyncDataModel other) => updatedAt.isAfter(other.updatedAt);
 
-  /// Check if the data content is the same (ignoring timestamps)
   bool hasSameDataAs(SyncDataModel other) {
-    return uuid == other.uuid && _mapEquals(data, other.data) && isDeleted == other.isDeleted;
-  }
-
-  bool _mapEquals(Map<String, dynamic> map1, Map<String, dynamic> map2) {
-    if (map1.length != map2.length) return false;
-    for (String key in map1.keys) {
-      if (!map2.containsKey(key) || map1[key] != map2[key]) {
-        return false;
-      }
-    }
-    return true;
+    return uuid == other.uuid &&
+        name == other.name &&
+        description == other.description &&
+        isDeleted == other.isDeleted;
   }
 
   @override
   String toString() {
-    return 'SyncDataModel{entryId: $entryId, uuid: $uuid, tableName: $tableName, oid: $oid, needsSync: $needsSync, isDeleted: $isDeleted}';
+    return 'SyncDataModel{entryId: $entryId, uuid: $uuid, tableName: $tableName, name: $name, description: $description, oid: $oid, needsSync: $needsSync, isDeleted: $isDeleted}';
   }
 }

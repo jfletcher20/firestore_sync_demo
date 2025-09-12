@@ -22,40 +22,29 @@ class SyncController {
   /// Initialize the sync controller and set up listeners
   Future<void> initialize() async {
     developer.log('Initializing SyncController', name: 'SyncController');
-
-    // Listen to FCM data messages
     _fcmSubscription = _fcmService.dataMessageStream.listen(
       _handleFcmMessage,
-      onError: (error) {
-        developer.log('Error in FCM stream: $error', name: 'SyncController');
-      },
+      onError: (error) => developer.log('Error in FCM stream: $error', name: 'SyncController'),
     );
-
-    // Listen to fallback queue responses
     _fallbackSubscription = _fallbackQueue.fallbackResponseStream.listen(
       _handleFallbackResponse,
       onError: (error) {
         developer.log('Error in fallback response stream: $error', name: 'SyncController');
       },
     );
-
     developer.log('SyncController initialized', name: 'SyncController');
   }
 
-  /// Handle incoming FCM data messages
   Future<void> _handleFcmMessage(SyncDataModel incomingData) async {
     try {
       developer.log('Handling FCM message for: ${incomingData.uuid}', name: 'SyncController');
-
-      // Check if this is a delete operation
+      // delete operation
       if (incomingData.isDeleted) {
         await _handleDeleteOperation(incomingData);
         return;
       }
-
-      // Handle regular data sync
+      // create or update operation
       final result = await _localDb.handleIncomingData(incomingData);
-
       switch (result) {
         case SyncConflictResult.stored:
         case SyncConflictResult.timestampUpdated:
@@ -64,7 +53,6 @@ class SyncController {
             name: 'SyncController',
           );
           break;
-
         case SyncConflictResult.needsServerUpdate:
           developer.log(
             'Local data is newer, sending to server: ${incomingData.uuid}',
@@ -72,7 +60,6 @@ class SyncController {
           );
           await _sendLocalDataToServer(incomingData.tableName, incomingData.uuid);
           break;
-
         case SyncConflictResult.error:
           developer.log('Error handling FCM data: ${incomingData.uuid}', name: 'SyncController');
           break;
@@ -95,26 +82,14 @@ class SyncController {
       final localItem = await _localDb.getItem(deleteData.tableName, deleteData.uuid);
 
       if (localItem == null) {
-        // Item doesn't exist locally, nothing to do
         developer.log(
           'Delete operation for non-existent item: ${deleteData.uuid}',
           name: 'SyncController',
         );
         return;
       }
-
-      // Check if local item is newer than the delete timestamp
-      if (localItem.isNewerThan(deleteData)) {
-        developer.log(
-          'Local item is newer than delete, sending update to server: ${deleteData.uuid}',
-          name: 'SyncController',
-        );
-        await _sendLocalDataToServer(deleteData.tableName, deleteData.uuid);
-      } else {
-        // Accept the delete
-        await _localDb.deleteItem(deleteData.tableName, deleteData.uuid, hardDelete: true);
-        developer.log('Accepted delete for: ${deleteData.uuid}', name: 'SyncController');
-      }
+      await _localDb.deleteItem(deleteData.tableName, deleteData.uuid, hardDelete: true);
+      developer.log('Accepted delete for: ${deleteData.uuid}', name: 'SyncController');
     } catch (e) {
       developer.log('Error handling delete operation: $e', name: 'SyncController');
     }
@@ -142,7 +117,6 @@ class SyncController {
     }
   }
 
-  /// Send local data to server (when local is newer)
   Future<void> _sendLocalDataToServer(String tableName, String uuid) async {
     try {
       final localItem = await _localDb.getItem(tableName, uuid);
@@ -150,14 +124,10 @@ class SyncController {
         developer.log('Local item not found for server update: $uuid', name: 'SyncController');
         return;
       }
-
-      if (localItem.entryId != null && localItem.entryId!.isNotEmpty) {
-        // Item exists on server, update it
+      if (localItem.entryId != null && localItem.entryId!.isNotEmpty)
         await _updateOnServer(localItem);
-      } else {
-        // New item, create on server
+      else
         await _createOnServer(localItem);
-      }
     } catch (e) {
       developer.log('Error sending local data to server: $e', name: 'SyncController');
     }
@@ -214,11 +184,11 @@ class SyncController {
   }
 
   /// Create a new item locally (user-initiated)
-  Future<SyncDataModel> createLocalItem(String tableName, Map<String, dynamic> data) async {
+  Future<SyncDataModel> createLocalItem(String tableName, String name, String description) async {
     try {
       developer.log('Creating local item in table: $tableName', name: 'SyncController');
 
-      final localItem = await _localDb.createItem(tableName, data);
+      final localItem = await _localDb.createItem(tableName, name, description);
 
       // Try to sync to server immediately
       await _createOnServer(localItem);
@@ -234,12 +204,13 @@ class SyncController {
   Future<SyncDataModel?> updateLocalItem(
     String tableName,
     String uuid,
-    Map<String, dynamic> data,
+    String name,
+    String description,
   ) async {
     try {
       developer.log('Updating local item: $uuid', name: 'SyncController');
 
-      final updatedItem = await _localDb.updateItem(tableName, uuid, data);
+      final updatedItem = await _localDb.updateItem(tableName, uuid, name, description);
       if (updatedItem == null) return null;
 
       // Try to sync to server immediately

@@ -1,4 +1,4 @@
-import 'package:swan_sync/swan-sync/presentation/screens/SWAN_sync_app_initializer.dart';
+import 'package:swan_sync/presentation/screens/app_initializer.dart';
 
 import 'package:flutter/material.dart';
 
@@ -13,12 +13,12 @@ class SyncDemoApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'SWAN Sync Demo (Refactored)',
+      title: 'SWAN Sync',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const SWANSyncAppInitializer(),
+      home: const AppInitializer(),
       debugShowCheckedModeBanner: false,
     );
   }

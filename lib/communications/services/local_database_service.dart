@@ -112,8 +112,8 @@ class LocalDatabaseService {
     }
   }
 
-  /// Get all items from a specific table
-  Future<List<ISyncable>> getAllItems(String tableName) async {
+  /// Get all items from a specific table (excludes deleted items by default)
+  Future<List<ISyncable>> getAllItems(String tableName, {bool includeDeleted = false}) async {
     try {
       final box = await _getBox(tableName);
       final prototype = _findPrototypeByTableName(tableName);
@@ -128,6 +128,12 @@ class LocalDatabaseService {
         try {
           final hiveData = Map<String, dynamic>.from(data);
           final item = prototype.fromHiveData(hiveData);
+
+          // Skip deleted items unless explicitly requested
+          if (!includeDeleted && item.isDeleted) {
+            continue;
+          }
+
           items.add(item);
         } catch (e) {
           developer.log('Error parsing item from Hive data: $e', name: 'LocalDatabaseService');
@@ -156,10 +162,8 @@ class LocalDatabaseService {
   Future<void> deleteItem(String tableName, String uuid) async {
     try {
       developer.log('Deleting item: $uuid from table: $tableName', name: 'LocalDatabaseService');
-
       final box = await _getBox(tableName);
       await box.delete(uuid);
-
       developer.log('Successfully deleted item: $uuid', name: 'LocalDatabaseService');
     } catch (e) {
       developer.log('Error deleting item: $e', name: 'LocalDatabaseService');
@@ -169,6 +173,7 @@ class LocalDatabaseService {
 
   /// Handle conflict resolution for getAll sync
   /// Removes local items that don't exist on server (were deleted remotely)
+  /// Sends delete requests for items that were locally deleted while offline
   Future<SyncConflictResult> handleGetAllSync(String tableName, List<ISyncable> serverItems) async {
     try {
       developer.log(
@@ -176,15 +181,48 @@ class LocalDatabaseService {
         name: 'LocalDatabaseService',
       );
 
-      final localItems = await getAllItems(tableName);
+      final localItems = await getAllItems(tableName, includeDeleted: true);
       final serverUuids = serverItems.map((item) => item.uuid).toSet();
 
       int deletedCount = 0;
       int updatedCount = 0;
       int addedCount = 0;
+      int serverDeletedCount = 0;
 
+      // First, check for items that were locally deleted while offline
+      // and need to be deleted on the server
       for (final localItem in localItems) {
-        if (localItem.oid != -1 && !serverUuids.contains(localItem.uuid)) {
+        if (localItem.isDeleted && localItem.oid != -1) {
+          // Item was deleted locally but has a server ID, send delete request
+          try {
+            final prototype = _findPrototypeByTableName(tableName);
+            if (prototype != null) {
+              await CommunicationsManager.handleRequest(
+                prototype,
+                null,
+                localItem.uuid,
+                oid: localItem.oid,
+                delete: true,
+              );
+              await deleteItem(tableName, localItem.uuid);
+              serverDeletedCount++;
+              developer.log(
+                'Sent delete request to server for locally deleted item ${localItem.uuid}',
+                name: 'LocalDatabaseService',
+              );
+            }
+          } catch (e) {
+            developer.log(
+              'Failed to delete item ${localItem.uuid} on server: $e',
+              name: 'LocalDatabaseService',
+            );
+          }
+        }
+      }
+
+      // Then handle normal sync logic - remove local items that don't exist on server
+      for (final localItem in localItems) {
+        if (localItem.oid != -1 && !localItem.isDeleted && !serverUuids.contains(localItem.uuid)) {
           await deleteItem(tableName, localItem.uuid);
           deletedCount++;
           developer.log(
@@ -212,11 +250,11 @@ class LocalDatabaseService {
       }
 
       developer.log(
-        'GetAll sync completed: $addedCount added, $updatedCount updated, $deletedCount deleted',
+        'GetAll sync completed: $addedCount added, $updatedCount updated, $deletedCount deleted, $serverDeletedCount sent to server for deletion',
         name: 'LocalDatabaseService',
       );
 
-      if (deletedCount > 0 || updatedCount > 0 || addedCount > 0) {
+      if (deletedCount > 0 || updatedCount > 0 || addedCount > 0 || serverDeletedCount > 0) {
         return SyncConflictResult.stored;
       } else {
         return SyncConflictResult.noChanges;

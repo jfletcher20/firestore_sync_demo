@@ -5,6 +5,7 @@ import 'dart:async';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:swan_sync/communications/managers/communications_manager.dart';
+import 'package:swan_sync/communications/services/sync_controller.dart';
 import 'package:swan_sync/data/i_syncable.dart';
 import 'package:swan_sync/communications/services/local_database_service.dart';
 
@@ -119,6 +120,13 @@ abstract class FallbackManager {
           'Total: $totalProcessed items processed successfully, $totalRemaining remaining across all queues',
           name: 'FallbackQueueManager',
         );
+        if (totalRemaining == 0)
+          SyncController().fullSyncAllTables().then((_) {
+            developer.log(
+              'Triggered full sync after processing fallback queues',
+              name: 'FallbackQueueManager',
+            );
+          });
       }
     } catch (e) {
       developer.log('Error processing fallback queues: $e', name: 'FallbackQueueManager');

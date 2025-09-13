@@ -29,6 +29,10 @@ class TodoModel extends HiveObject implements ISyncable {
   @HiveField(5)
   final DateTime updatedAt;
 
+  @override
+  @HiveField(6)
+  final bool isDeleted;
+
   TodoModel({
     this.oid = -1,
     required this.uuid,
@@ -36,6 +40,7 @@ class TodoModel extends HiveObject implements ISyncable {
     required this.description,
     required this.createdAt,
     required this.updatedAt,
+    this.isDeleted = false,
   });
 
   /// Create a new TodoModel with generated UUID
@@ -114,6 +119,7 @@ class TodoModel extends HiveObject implements ISyncable {
       description: serverData['description'] ?? '',
       createdAt: DateTime.tryParse(serverData['createdAt'] ?? '') ?? DateTime.now().toUtc(),
       updatedAt: DateTime.tryParse(serverData['updatedAt'] ?? '') ?? DateTime.now().toUtc(),
+      isDeleted: serverData['isDeleted'] ?? false,
     );
   }
 
@@ -123,6 +129,7 @@ class TodoModel extends HiveObject implements ISyncable {
     String? uuid,
     DateTime? createdAt,
     DateTime? updatedAt,
+    bool? isDeleted,
     String? name,
     String? description,
   }) {
@@ -133,6 +140,7 @@ class TodoModel extends HiveObject implements ISyncable {
       description: description ?? this.description,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      isDeleted: isDeleted ?? this.isDeleted,
     );
   }
 
@@ -151,6 +159,7 @@ class TodoModel extends HiveObject implements ISyncable {
       'description': description,
       'createdAt': createdAt.toUtc().toIso8601String(),
       'updatedAt': updatedAt.toUtc().toIso8601String(),
+      'isDeleted': isDeleted,
     };
   }
 
@@ -163,6 +172,7 @@ class TodoModel extends HiveObject implements ISyncable {
       description: hiveData['description'] ?? '',
       createdAt: DateTime.tryParse(hiveData['createdAt'] ?? '') ?? DateTime.now().toUtc(),
       updatedAt: DateTime.tryParse(hiveData['updatedAt'] ?? '') ?? DateTime.now().toUtc(),
+      isDeleted: hiveData['isDeleted'] ?? false,
     );
   }
 

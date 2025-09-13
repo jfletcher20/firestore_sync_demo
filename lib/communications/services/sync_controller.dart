@@ -281,24 +281,40 @@ class SyncController {
         return;
       }
 
-      // Delete locally first
-      await _localDb.deleteItem(tableName, uuid);
-
-      // Try to delete on server if it was synced
+      // Try to delete on server first if it was synced
       if (!localItem.needsSync) {
         try {
           final prototype = _getPrototypeByTableName(tableName);
           if (prototype != null) {
-            await _apiService.delete(prototype, localItem.oid);
-            developer.log(
-              'Successfully deleted item on server: ${localItem.oid}',
-              name: 'SyncController',
+            _apiService.delete(localItem, localItem.oid).then((_) {
+              developer.log(
+                'Successfully deleted item on server: ${localItem.oid}',
+                name: 'SyncController',
+              );
+              _localDb.deleteItem(tableName, uuid);
+            });
+            final deletedItem = localItem.copyWith(
+              isDeleted: true,
+              updatedAt: DateTime.now().toUtc(),
             );
+            await _localDb.storeItem(deletedItem);
           }
         } catch (e) {
-          developer.log('Failed to delete item on server: $e', name: 'SyncController');
-          // TODO: Add to fallback queue for retry later
+          developer.log(
+            'Failed to delete on server: $e - marking as deleted locally',
+            name: 'SyncController',
+          );
+          // Mark as deleted locally instead of actually deleting
+          final deletedItem = localItem.copyWith(
+            isDeleted: true,
+            updatedAt: DateTime.now().toUtc(),
+          );
+          await _localDb.storeItem(deletedItem);
         }
+      } else {
+        // Item was never synced to server, safe to delete locally
+        await _localDb.deleteItem(tableName, uuid);
+        developer.log('Deleted unsynced item locally: $uuid', name: 'SyncController');
       }
     } catch (e) {
       developer.log('Error deleting item: $e', name: 'SyncController');

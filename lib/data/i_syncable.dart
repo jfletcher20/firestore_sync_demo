@@ -19,6 +19,9 @@ abstract class ISyncable {
   /// Whether this item needs to be synced to server (oid == -1)
   bool get needsSync => oid == -1;
 
+  /// Whether this item is marked for deletion locally
+  bool get isDeleted;
+
   // API Endpoint definitions - each model defines its own routes
 
   /// GET /api/endpoint - get all items of this type
@@ -45,7 +48,13 @@ abstract class ISyncable {
   ISyncable fromServerData(Map<String, dynamic> serverData);
 
   /// Create a copy of this model with updated fields
-  ISyncable copyWith({int? oid, String? uuid, DateTime? createdAt, DateTime? updatedAt});
+  ISyncable copyWith({
+    int? oid,
+    String? uuid,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    bool? isDeleted,
+  });
 
   /// Check if this item is newer than another based on updatedAt
   bool isNewerThan(ISyncable other) {

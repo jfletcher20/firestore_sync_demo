@@ -75,6 +75,7 @@ abstract class FallbackManager {
       for (final requestType in RequestType.values) {
         final queueKey = _getQueueKeyForType(requestType);
         final queueJson = prefs.getString(queueKey) ?? '[]';
+        print(queueJson);
         final List<dynamic> queue = json.decode(queueJson);
 
         if (queue.isEmpty) continue;
@@ -89,6 +90,7 @@ abstract class FallbackManager {
           try {
             final success = await _retryQueueItem(item);
             if (!success) remainingItems.add(item);
+            await Future.delayed(const Duration(seconds: 1));
           } catch (e) {
             developer.log(
               'Error processing ${requestType.name} queue item ${item['uuid']}: $e',
@@ -160,7 +162,6 @@ abstract class FallbackManager {
           requestData = await localDb.getItem(prototype.tableName, uuid);
           print("Got item from local DB for retry: $requestData");
           if ((type == RequestType.POST || type == RequestType.PUT) && requestData == null) {
-            // remove the request
             developer.log(
               'Data for ${type.name} request $uuid not found in local DB, removing from queue',
               name: 'FallbackQueueManager',
@@ -258,6 +259,8 @@ abstract class FallbackManager {
 
       final success =
           (response.statusCode >= 200 && response.statusCode < 300) || response.statusCode == 404;
+
+      await Future.delayed(const Duration(seconds: 1));
 
       if (success) {
         developer.log(

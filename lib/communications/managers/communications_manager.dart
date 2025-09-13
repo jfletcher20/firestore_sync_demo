@@ -12,7 +12,8 @@ import 'dart:async';
 abstract class CommunicationsManager {
   static Future<http.Response> handleRequest(
     ISyncable prototype,
-    ISyncable? data, {
+    ISyncable? data,
+    String uuid, {
     int? oid,
     Map<String, String>? headers,
     bool delete = false,
@@ -59,13 +60,7 @@ abstract class CommunicationsManager {
           'Request failed for table: ${prototype.tableName}, status code: ${response.statusCode}, body: ${response.body}',
           name: 'CommunicationsHandler',
         );
-        FallbackManager.addToQueue(
-          type!,
-          prototype.tableName,
-          data?.uuid ?? prototype.uuid,
-          oid,
-          data,
-        );
+        FallbackManager.addToQueue(type!, prototype.tableName, uuid, oid, data);
         return response;
       }
     } catch (e) {
@@ -73,13 +68,7 @@ abstract class CommunicationsManager {
         'Error handling request: $e, sending to fallback',
         name: 'CommunicationsHandler',
       );
-      FallbackManager.addToQueue(
-        type!,
-        prototype.tableName,
-        data?.uuid ?? prototype.uuid,
-        oid,
-        data,
-      );
+      FallbackManager.addToQueue(type!, prototype.tableName, uuid, oid, data);
       return http.Response('Error: $e', 500);
     }
   }

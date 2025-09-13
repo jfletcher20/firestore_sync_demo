@@ -1,3 +1,4 @@
+import 'package:swan_sync/communications/services/local_database_service.dart';
 import 'package:swan_sync/communications/services/sync_controller.dart';
 import 'package:swan_sync/communications/managers/communications_manager.dart';
 import 'package:swan_sync/data/i_syncable.dart';
@@ -46,6 +47,7 @@ class ApiService {
       final response = await CommunicationsManager.handleRequest(
         prototype,
         null,
+        "<getAll has no UUID>",
         headers: _defaultHeaders,
       );
 
@@ -92,6 +94,7 @@ class ApiService {
       final response = await CommunicationsManager.handleRequest(
         prototype,
         null,
+        "<getting by ID has no UUID>",
         oid: id,
         headers: _defaultHeaders,
       );
@@ -131,6 +134,7 @@ class ApiService {
       final response = await CommunicationsManager.handleRequest(
         data,
         data,
+        data.uuid,
         headers: _defaultHeaders,
       );
 
@@ -167,6 +171,7 @@ class ApiService {
       final response = await CommunicationsManager.handleRequest(
         data,
         data,
+        data.uuid,
         oid: id,
         headers: _defaultHeaders,
       );
@@ -203,9 +208,14 @@ class ApiService {
     try {
       developer.log('Deleting item: $id for table: ${prototype.tableName}', name: 'ApiService');
 
+      var uuid = await LocalDatabaseService()
+          .getItemById(prototype.tableName, id)
+          .then((item) => item?.uuid ?? 'unknown');
+
       final response = await CommunicationsManager.handleRequest(
         prototype,
         null,
+        uuid,
         oid: id,
         delete: true,
         headers: _defaultHeaders,
@@ -233,6 +243,7 @@ class ApiService {
       final response = await CommunicationsManager.handleRequest(
         prototype,
         null,
+        "<server reachability check has no UUID>",
         headers: _defaultHeaders,
       );
       return response.statusCode < 500;

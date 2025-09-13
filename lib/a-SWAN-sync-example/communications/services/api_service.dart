@@ -9,7 +9,7 @@ class ApiService {
   factory ApiService() => _instance;
   ApiService._internal();
 
-  static const String baseUrl = 'http://192.168.100.77:8000/api/v1/sync';
+  static const String baseUrl = 'http://192.168.100.77:8000/api/v1/todos';
   static const Duration timeout = Duration(seconds: 30);
 
   final Map<String, String> _defaultHeaders = {'Content-Type': 'application/json'};

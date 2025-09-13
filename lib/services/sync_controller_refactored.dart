@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:developer' as developer;
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import '../services/local_database_service_refactored.dart';
 import '../services/api_service_refactored.dart';
 import '../interfaces/i_syncable.dart';
@@ -21,6 +22,8 @@ class SyncController {
   /// Store registered prototypes for dynamic model creation
   final Map<String, ISyncable> _prototypes = {};
 
+  static String? deviceToken = "anonymous swan v2";
+
   /// Initialize the sync controller and set up FCM listeners
   Future<void> initialize({bool performAutoSync = true}) async {
     if (_isInitialized) return;
@@ -28,6 +31,16 @@ class SyncController {
     developer.log('Initializing SyncController', name: 'SyncController');
 
     await _localDb.initialize();
+
+    //TODO: requestpermission?
+    // store the token in static variable
+    if (defaultTargetPlatform == TargetPlatform.iOS)
+      deviceToken = await FirebaseMessaging.instance.getAPNSToken();
+    else
+      deviceToken = await FirebaseMessaging.instance.getToken();
+
+    // log the token
+    developer.log('FCM Device Token: $deviceToken', name: 'SyncController');
 
     // Set up FCM message handling
     FirebaseMessaging.onMessage.listen(_handleFcmMessage);

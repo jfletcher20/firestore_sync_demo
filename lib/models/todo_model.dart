@@ -45,6 +45,18 @@ class TodoModel extends HiveObject implements ISyncable {
     );
   }
 
+  /// Create a prototype instance for registration with services
+  static TodoModel prototype() {
+    return TodoModel(
+      oid: -1,
+      uuid: '',
+      name: '',
+      description: '',
+      createdAt: DateTime.now().toUtc(),
+      updatedAt: DateTime.now().toUtc(),
+    );
+  }
+
   @override
   String get tableName => 'todos';
 
@@ -58,19 +70,19 @@ class TodoModel extends HiveObject implements ISyncable {
 
   // API Endpoints
   @override
-  String get getAllEndpoint => 'http://127.0.0.1:8000/api/v1/todos';
+  String get getAllEndpoint => 'http://192.168.100.77:8000/api/v1/todos';
 
   @override
-  String get getByIdEndpoint => 'http://127.0.0.1:8000/api/v1/todos';
+  String get getByIdEndpoint => 'http://192.168.100.77:8000/api/v1/todos';
 
   @override
-  String get postEndpoint => 'http://127.0.0.1:8000/api/v1/todos';
+  String get postEndpoint => 'http://192.168.100.77:8000/api/v1/todos';
 
   @override
-  String get putEndpoint => 'http://127.0.0.1:8000/api/v1/todos';
+  String get putEndpoint => 'http://192.168.100.77:8000/api/v1/todos';
 
   @override
-  String get deleteEndpoint => 'http://127.0.0.1:8000/api/v1/todos';
+  String get deleteEndpoint => 'http://192.168.100.77:8000/api/v1/todos';
 
   @override
   Map<String, dynamic> toServerData() {
@@ -86,7 +98,11 @@ class TodoModel extends HiveObject implements ISyncable {
   @override
   ISyncable fromServerData(Map<String, dynamic> serverData) {
     return TodoModel(
-      oid: serverData['id'] ?? serverData['oid'] ?? -1,
+      oid:
+          int.tryParse(serverData['entryId']) ??
+          int.tryParse(serverData['id']) ??
+          int.tryParse(serverData['oid']) ??
+          -1,
       uuid: serverData['uuid'] ?? '',
       name: serverData['name'] ?? '',
       description: serverData['description'] ?? '',

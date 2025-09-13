@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:developer' as developer;
 import 'package:http/http.dart' as http;
+import 'package:swan_sync/services/sync_controller_refactored.dart';
 import '../interfaces/i_syncable.dart';
 
 class ApiService {
@@ -14,6 +15,7 @@ class ApiService {
   final Map<String, String> _defaultHeaders = {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
+    'device-id': SyncController.deviceToken ?? 'anonymous swan v3',
   };
 
   /// List of registered ISyncable types for dynamic model creation
@@ -222,9 +224,11 @@ class ApiService {
     if (_registeredTypes.isEmpty) return false;
 
     try {
+      print(_registeredTypes.first.getAllEndpoint);
       final response = await http
           .get(Uri.parse(_registeredTypes.first.getAllEndpoint), headers: _defaultHeaders)
           .timeout(Duration(seconds: 5));
+      print(response.body);
       return response.statusCode < 500;
     } catch (e) {
       return false;

@@ -13,7 +13,7 @@ class SyncDemoApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Swan Sync Demo',
+      title: 'SWAN Sync Demo (Refactored)',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,

@@ -1,4 +1,5 @@
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:swan_sync/swan-sync/communications/services/communications_handler.dart';
 import 'package:swan_sync/swan-sync/communications/services/sync_controller_refactored.dart';
 import 'package:swan_sync/swan-sync/data/models/todo_model.dart';
 
@@ -19,6 +20,7 @@ class AppDependencies {
 
     // Register the TodoModel as a syncable type
     syncController.registerSyncableType(TodoModel.prototype());
+    FallbackQueueManager.init();
 
     // Initialize the sync controller with auto-sync enabled
     await syncController.initialize(performAutoSync: true);

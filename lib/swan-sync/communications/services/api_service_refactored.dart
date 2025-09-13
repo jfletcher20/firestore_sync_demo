@@ -1,7 +1,6 @@
 import 'package:swan_sync/swan-sync/communications/services/sync_controller_refactored.dart';
+import 'package:swan_sync/swan-sync/communications/services/communications_handler.dart';
 import 'package:swan_sync/swan-sync/data/i_syncable.dart';
-
-import 'package:http/http.dart' as http;
 
 import 'dart:developer' as developer;
 import 'dart:convert';
@@ -14,7 +13,7 @@ class ApiService {
 
   static const Duration timeout = Duration(seconds: 30);
 
-  final Map<String, String> _defaultHeaders = {
+  Map<String, String> get _defaultHeaders => {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
     'device-id': SyncController.deviceToken ?? 'anonymous swan v3',
@@ -44,9 +43,11 @@ class ApiService {
     try {
       developer.log('Fetching all items for table: ${prototype.tableName}', name: 'ApiService');
 
-      final response = await http
-          .get(Uri.parse(prototype.getAllEndpoint), headers: _defaultHeaders)
-          .timeout(timeout);
+      final response = await CommunicationsHandler.handleRequest(
+        prototype,
+        null,
+        headers: _defaultHeaders,
+      );
 
       if (response.statusCode == 200) {
         final List<dynamic> jsonList = json.decode(response.body);
@@ -90,9 +91,12 @@ class ApiService {
         name: 'ApiService',
       );
 
-      final response = await http
-          .get(Uri.parse('${prototype.getByIdEndpoint}/$id'), headers: _defaultHeaders)
-          .timeout(timeout);
+      final response = await CommunicationsHandler.handleRequest(
+        prototype,
+        null,
+        oid: id,
+        headers: _defaultHeaders,
+      );
 
       if (response.statusCode == 200) {
         final json = jsonDecode(response.body);
@@ -128,10 +132,11 @@ class ApiService {
     try {
       developer.log('Creating item: ${data.uuid} for table: ${data.tableName}', name: 'ApiService');
 
-      final body = json.encode(data.toServerData());
-      final response = await http
-          .post(Uri.parse(data.postEndpoint), headers: _defaultHeaders, body: body)
-          .timeout(timeout);
+      final response = await CommunicationsHandler.handleRequest(
+        data,
+        data,
+        headers: _defaultHeaders,
+      );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final responseJson = json.decode(response.body);
@@ -165,10 +170,12 @@ class ApiService {
     try {
       developer.log('Updating item: $id for table: ${data.tableName}', name: 'ApiService');
 
-      final body = json.encode(data.toServerData());
-      final response = await http
-          .put(Uri.parse('${data.putEndpoint}/$id'), headers: _defaultHeaders, body: body)
-          .timeout(timeout);
+      final response = await CommunicationsHandler.handleRequest(
+        data,
+        data,
+        oid: id,
+        headers: _defaultHeaders,
+      );
 
       if (response.statusCode == 200) {
         final responseJson = json.decode(response.body);
@@ -204,9 +211,13 @@ class ApiService {
     try {
       developer.log('Deleting item: $id for table: ${prototype.tableName}', name: 'ApiService');
 
-      final response = await http
-          .delete(Uri.parse('${prototype.deleteEndpoint}/$id'), headers: _defaultHeaders)
-          .timeout(timeout);
+      final response = await CommunicationsHandler.handleRequest(
+        prototype,
+        null,
+        oid: id,
+        delete: true,
+        headers: _defaultHeaders,
+      );
 
       if (response.statusCode == 200 || response.statusCode == 204) {
         developer.log('Successfully deleted item: $id', name: 'ApiService');
@@ -227,9 +238,12 @@ class ApiService {
 
     try {
       print(_registeredTypes.first.getAllEndpoint);
-      final response = await http
-          .get(Uri.parse(_registeredTypes.first.getAllEndpoint), headers: _defaultHeaders)
-          .timeout(Duration(seconds: 5));
+      final prototype = _registeredTypes.first;
+      final response = await CommunicationsHandler.handleRequest(
+        prototype,
+        null,
+        headers: _defaultHeaders,
+      );
       print(response.body);
       return response.statusCode < 500;
     } catch (e) {

@@ -11,7 +11,9 @@ class LocalDatabaseService {
   LocalDatabaseService._internal();
 
   /// List of registered ISyncable types for dynamic model creation
-  final List<ISyncable> _registeredTypes = [];
+  // ignore: prefer_final_fields
+  List<ISyncable> _registeredTypes = [];
+  List<ISyncable> get registeredTypes => List.unmodifiable(_registeredTypes);
 
   /// Initialize Hive and register adapters
   Future<void> initialize() async {

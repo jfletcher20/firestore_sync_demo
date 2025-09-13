@@ -21,7 +21,7 @@ class SyncDataModelAdapter extends TypeAdapter<SyncDataModel> {
       uuid: fields[1] as String,
       tableName: fields[2] as String,
       name: fields[3] as String,
-      description: fields[9] as String? ?? '',
+      description: fields[9] as String,
       createdAt: fields[4] as DateTime,
       updatedAt: fields[5] as DateTime,
       oid: fields[6] as String?,
@@ -33,7 +33,7 @@ class SyncDataModelAdapter extends TypeAdapter<SyncDataModel> {
   @override
   void write(BinaryWriter writer, SyncDataModel obj) {
     writer
-      ..writeByte(9)
+      ..writeByte(10)
       ..writeByte(0)
       ..write(obj.entryId)
       ..writeByte(1)
@@ -42,6 +42,8 @@ class SyncDataModelAdapter extends TypeAdapter<SyncDataModel> {
       ..write(obj.tableName)
       ..writeByte(3)
       ..write(obj.name)
+      ..writeByte(9)
+      ..write(obj.description)
       ..writeByte(4)
       ..write(obj.createdAt)
       ..writeByte(5)
@@ -51,9 +53,7 @@ class SyncDataModelAdapter extends TypeAdapter<SyncDataModel> {
       ..writeByte(7)
       ..write(obj.isDeleted)
       ..writeByte(8)
-      ..write(obj.needsSync)
-      ..writeByte(9)
-      ..write(obj.description);
+      ..write(obj.needsSync);
   }
 
   @override
@@ -62,35 +62,39 @@ class SyncDataModelAdapter extends TypeAdapter<SyncDataModel> {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is SyncDataModelAdapter && runtimeType == other.runtimeType && typeId == other.typeId;
+      other is SyncDataModelAdapter &&
+          runtimeType == other.runtimeType &&
+          typeId == other.typeId;
 }
 
 // **************************************************************************
 // JsonSerializableGenerator
 // **************************************************************************
 
-SyncDataModel _$SyncDataModelFromJson(Map<String, dynamic> json) => SyncDataModel(
-  entryId: json['entryId'] as String?,
-  uuid: json['uuid'] as String,
-  tableName: json['tableName'] as String,
-  name: json['name'] as String,
-  description: json['description'] as String,
-  createdAt: DateTime.parse(json['createdAt'] as String),
-  updatedAt: DateTime.parse(json['updatedAt'] as String),
-  oid: json['oid'] as String?,
-  isDeleted: json['isDeleted'] as bool? ?? false,
-  needsSync: json['needsSync'] as bool? ?? false,
-);
+SyncDataModel _$SyncDataModelFromJson(Map<String, dynamic> json) =>
+    SyncDataModel(
+      entryId: json['entryId'] as String?,
+      uuid: json['uuid'] as String,
+      tableName: json['tableName'] as String,
+      name: json['name'] as String,
+      description: json['description'] as String,
+      createdAt: DateTime.parse(json['createdAt'] as String),
+      updatedAt: DateTime.parse(json['updatedAt'] as String),
+      oid: json['oid'] as String?,
+      isDeleted: json['isDeleted'] as bool? ?? false,
+      needsSync: json['needsSync'] as bool? ?? false,
+    );
 
-Map<String, dynamic> _$SyncDataModelToJson(SyncDataModel instance) => <String, dynamic>{
-  'entryId': instance.entryId,
-  'uuid': instance.uuid,
-  'tableName': instance.tableName,
-  'name': instance.name,
-  'description': instance.description,
-  'createdAt': instance.createdAt.toIso8601String(),
-  'updatedAt': instance.updatedAt.toIso8601String(),
-  'oid': instance.oid,
-  'isDeleted': instance.isDeleted,
-  'needsSync': instance.needsSync,
-};
+Map<String, dynamic> _$SyncDataModelToJson(SyncDataModel instance) =>
+    <String, dynamic>{
+      'entryId': instance.entryId,
+      'uuid': instance.uuid,
+      'tableName': instance.tableName,
+      'name': instance.name,
+      'description': instance.description,
+      'createdAt': instance.createdAt.toIso8601String(),
+      'updatedAt': instance.updatedAt.toIso8601String(),
+      'oid': instance.oid,
+      'isDeleted': instance.isDeleted,
+      'needsSync': instance.needsSync,
+    };

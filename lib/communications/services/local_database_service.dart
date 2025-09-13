@@ -272,6 +272,7 @@ class LocalDatabaseService {
   /// Monitor the fallback queue's responses and update local db accordingly
   Future<void> monitorFallbackQueue() async {
     FallbackManager.fallbackQueueStream.listen((event) async {
+      print("Fallback event received: $event");
       final response = event.response;
       final type = event.type;
       final tableName = event.tableName;

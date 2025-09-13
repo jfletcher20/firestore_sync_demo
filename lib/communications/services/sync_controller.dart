@@ -50,7 +50,7 @@ class SyncController {
     _isInitialized = true;
     developer.log('SyncController initialized', name: 'SyncController');
 
-    if (performAutoSync) await autoSyncOnLaunch();
+    if (performAutoSync) autoSyncOnLaunch();
   }
 
   Future<void> autoSyncOnLaunch() async {

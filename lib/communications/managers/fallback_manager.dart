@@ -159,6 +159,14 @@ abstract class FallbackManager {
         try {
           requestData = await localDb.getItem(prototype.tableName, uuid);
           print("Got item from local DB for retry: $requestData");
+          if ((type == RequestType.POST || type == RequestType.PUT) && requestData == null) {
+            // remove the request
+            developer.log(
+              'Data for ${type.name} request $uuid not found in local DB, removing from queue',
+              name: 'FallbackQueueManager',
+            );
+            return true;
+          }
         } catch (e) {
           developer.log('Error reconstructing data from JSON: $e', name: 'FallbackQueueManager');
           return false;
@@ -221,7 +229,7 @@ abstract class FallbackManager {
           'Successfully retried ${type.name} for $uuid (${response.statusCode})',
           name: 'FallbackQueueManager',
         );
-        fallbackResponseStream.add((
+        _fallbackResponseController.add((
           response: response,
           type: type,
           uuid: uuid,
@@ -249,9 +257,6 @@ abstract class FallbackManager {
 
   static Stream<({http.Response response, RequestType type, String uuid, String tableName})>
   get fallbackQueueStream => _fallbackResponseController.stream;
-
-  static StreamSink<({http.Response response, RequestType type, String uuid, String tableName})>
-  get fallbackResponseStream => _fallbackResponseController.sink;
 
   static Future<bool> currentRequestFinished = Future.value(true);
   static void _startRetryTimer() {

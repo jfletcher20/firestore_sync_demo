@@ -229,14 +229,12 @@ class ApiService {
     if (_registeredTypes.isEmpty) return false;
 
     try {
-      print(_registeredTypes.first.getAllEndpoint);
       final prototype = _registeredTypes.first;
       final response = await CommunicationsManager.handleRequest(
         prototype,
         null,
         headers: _defaultHeaders,
       );
-      print(response.body);
       return response.statusCode < 500;
     } catch (e) {
       return false;

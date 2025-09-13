@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:swan_sync/a-SWAN-sync-example/communications/controllers/sync_controller.dart';
+import 'package:swan_sync/swan-sync/communications/services/sync_controller_refactored.dart';
 
 class ServerReachableWidget extends StatelessWidget {
   const ServerReachableWidget({super.key});

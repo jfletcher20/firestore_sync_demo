@@ -1,4 +1,4 @@
-import 'package:swan_sync/a-SWAN-sync-example/presentation/screens/SWAN_sync_app_initializer.dart';
+import 'package:swan_sync/swan-sync/presentation/screens/SWAN_sync_app_initializer.dart';
 
 import 'package:flutter/material.dart';
 

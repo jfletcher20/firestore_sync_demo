@@ -1,7 +1,9 @@
-import 'dart:async';
-import 'dart:developer' as developer;
+import 'package:swan_sync/swan-sync/data/i_syncable.dart';
+
 import 'package:hive_flutter/hive_flutter.dart';
-import '../interfaces/i_syncable.dart';
+
+import 'dart:developer' as developer;
+import 'dart:async';
 
 class LocalDatabaseService {
   static final LocalDatabaseService _instance = LocalDatabaseService._internal();
@@ -253,7 +255,7 @@ class LocalDatabaseService {
         );
         return SyncConflictResult.needsServerUpdate;
       }
-    } else {
+    } else if (incomingData.isNewerThan(localItem)) {
       // Incoming data is newer or same timestamp
       if (localItem.hasSameContentAs(incomingData)) {
         // Same data, just update timestamps and oid
@@ -273,6 +275,10 @@ class LocalDatabaseService {
         );
         return SyncConflictResult.stored;
       }
+    } else {
+      // do nothing, timestamps are identical
+      developer.log('No changes needed for: ${localItem.uuid}', name: 'LocalDatabaseService');
+      return SyncConflictResult.noChanges;
     }
   }
 

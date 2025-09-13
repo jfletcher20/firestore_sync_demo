@@ -1,14 +1,17 @@
+import 'package:swan_sync/swan-sync/data/i_syncable.dart';
+
 import 'package:hive/hive.dart';
 import 'package:uuid/uuid.dart';
-import '../interfaces/i_syncable.dart';
 
 part 'todo_model.g.dart';
 
 @HiveType(typeId: 0)
 class TodoModel extends HiveObject implements ISyncable {
+  @override
   @HiveField(0)
   final int oid;
 
+  @override
   @HiveField(1)
   final String uuid;
 
@@ -18,9 +21,11 @@ class TodoModel extends HiveObject implements ISyncable {
   @HiveField(3)
   final String description;
 
+  @override
   @HiveField(4)
   final DateTime createdAt;
 
+  @override
   @HiveField(5)
   final DateTime updatedAt;
 
@@ -69,20 +74,21 @@ class TodoModel extends HiveObject implements ISyncable {
   }
 
   // API Endpoints
+  static const String host = 'http://192.168.100.77:8000/api';
   @override
-  String get getAllEndpoint => 'http://192.168.100.77:8000/api/v1/todos';
+  String get getAllEndpoint => '$host/v1/todos';
 
   @override
-  String get getByIdEndpoint => 'http://192.168.100.77:8000/api/v1/todos';
+  String get getByIdEndpoint => '$host/v1/todos';
 
   @override
-  String get postEndpoint => 'http://192.168.100.77:8000/api/v1/todos';
+  String get postEndpoint => '$host/v1/todos';
 
   @override
-  String get putEndpoint => 'http://192.168.100.77:8000/api/v1/todos';
+  String get putEndpoint => '$host/v1/todos';
 
   @override
-  String get deleteEndpoint => 'http://192.168.100.77:8000/api/v1/todos';
+  String get deleteEndpoint => '$host/v1/todos';
 
   @override
   Map<String, dynamic> toServerData() {

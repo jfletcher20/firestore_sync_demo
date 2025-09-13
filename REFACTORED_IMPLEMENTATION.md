@@ -22,32 +22,6 @@ Successfully reimplemented the SWAN sync demo app to use the refactored ISyncabl
    - `LocalDatabaseService` - ISyncable-aware storage with conflict resolution
    - `SyncController` - Orchestrates sync operations and FCM handling
 
-### App Structure
-
-```
-lib/
-├── main.dart (updated to use refactored system)
-├── interfaces/
-│   └── i_syncable.dart
-├── models/
-│   ├── todo_model.dart
-│   ├── todo_model.g.dart (generated)
-│   └── data_message_response.dart
-├── services/
-│   ├── api_service_refactored.dart
-│   ├── local_database_service_refactored.dart
-│   └── sync_controller_refactored.dart
-└── a-SWAN-sync-example/
-    ├── communications/core/
-    │   └── app_dependencies_refactored.dart
-    ├── presentation/screens/
-    │   ├── SWAN_sync_app_initializer.dart (updated)
-    │   └── sync_demo_screen_refactored.dart
-    └── presentation/widgets/
-        ├── server_reachable_widget_refactored.dart
-        ├── SWAN_synced_list_view_refactored.dart
-        └── SWAN_sync_item_card_refactored.dart
-```
 
 ## Key Features
 

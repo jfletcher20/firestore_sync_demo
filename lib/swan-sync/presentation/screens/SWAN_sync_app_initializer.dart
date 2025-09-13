@@ -1,7 +1,7 @@
-import 'package:swan_sync/a-SWAN-sync-example/presentation/widgets/sync_init_failure_widget.dart';
-import 'package:swan_sync/a-SWAN-sync-example/presentation/widgets/sync_init_loading_widget.dart';
-import 'package:swan_sync/a-SWAN-sync-example/presentation/screens/sync_demo_screen_refactored.dart';
-import 'package:swan_sync/a-SWAN-sync-example/communications/core/app_dependencies_refactored.dart';
+import 'package:swan_sync/swan-sync/presentation/widgets/sync_init_failure_widget.dart';
+import 'package:swan_sync/swan-sync/presentation/widgets/sync_init_loading_widget.dart';
+import 'package:swan_sync/swan-sync/presentation/screens/sync_demo_screen_refactored.dart';
+import 'package:swan_sync/swan-sync/communications/core/app_dependencies_refactored.dart';
 import 'package:swan_sync/firebase_options.dart';
 
 import 'package:firebase_core/firebase_core.dart';

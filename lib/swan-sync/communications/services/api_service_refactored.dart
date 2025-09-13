@@ -1,9 +1,11 @@
-import 'dart:async';
-import 'dart:convert';
-import 'dart:developer' as developer;
+import 'package:swan_sync/swan-sync/communications/services/sync_controller_refactored.dart';
+import 'package:swan_sync/swan-sync/data/i_syncable.dart';
+
 import 'package:http/http.dart' as http;
-import 'package:swan_sync/services/sync_controller_refactored.dart';
-import '../interfaces/i_syncable.dart';
+
+import 'dart:developer' as developer;
+import 'dart:convert';
+import 'dart:async';
 
 class ApiService {
   static final ApiService _instance = ApiService._internal();

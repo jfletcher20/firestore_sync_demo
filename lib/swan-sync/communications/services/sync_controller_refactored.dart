@@ -1,11 +1,14 @@
-import 'dart:async';
-import 'dart:developer' as developer;
+import 'package:swan_sync/swan-sync/data/models/data_message_response.dart';
+import 'package:swan_sync/swan-sync/communications/services/local_database_service_refactored.dart';
+import 'package:swan_sync/swan-sync/communications/services/api_service_refactored.dart';
+import 'package:swan_sync/swan-sync/data/i_syncable.dart';
+
 import 'package:firebase_messaging/firebase_messaging.dart';
+
 import 'package:flutter/foundation.dart';
-import '../services/local_database_service_refactored.dart';
-import '../services/api_service_refactored.dart';
-import '../interfaces/i_syncable.dart';
-import '../models/data_message_response.dart';
+
+import 'dart:developer' as developer;
+import 'dart:async';
 
 class SyncController {
   static final SyncController _instance = SyncController._internal();

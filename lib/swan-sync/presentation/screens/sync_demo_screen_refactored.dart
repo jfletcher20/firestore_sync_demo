@@ -1,10 +1,11 @@
-import 'package:swan_sync/a-SWAN-sync-example/presentation/widgets/server_reachable_widget_refactored.dart';
-import 'package:swan_sync/a-SWAN-sync-example/presentation/widgets/SWAN_synced_list_view_refactored.dart';
-import 'package:swan_sync/a-SWAN-sync-example/presentation/widgets/snapshot_error_widget.dart';
-import 'package:swan_sync/a-SWAN-sync-example/presentation/widgets/no_items_widget.dart';
-import 'package:swan_sync/a-SWAN-sync-example/communications/core/app_dependencies_refactored.dart';
-import 'package:swan_sync/models/todo_model.dart';
-import 'package:swan_sync/interfaces/i_syncable.dart';
+import 'package:swan_sync/swan-sync/communications/services/local_database_service_refactored.dart';
+import 'package:swan_sync/swan-sync/data/i_syncable.dart';
+import 'package:swan_sync/swan-sync/presentation/widgets/server_reachable_widget_refactored.dart';
+import 'package:swan_sync/swan-sync/presentation/widgets/SWAN_synced_list_view_refactored.dart';
+import 'package:swan_sync/swan-sync/presentation/widgets/snapshot_error_widget.dart';
+import 'package:swan_sync/swan-sync/presentation/widgets/no_items_widget.dart';
+import 'package:swan_sync/swan-sync/communications/core/app_dependencies_refactored.dart';
+import 'package:swan_sync/swan-sync/data/models/todo_model.dart';
 
 import 'package:flutter/material.dart';
 
@@ -143,8 +144,35 @@ class _SyncDemoScreenRefactoredState extends State<SyncDemoScreenRefactored> {
         if (snapshot.hasError) {
           return SnapshotErrorWidget(snapshot: snapshot, retry: () => setState(() {}));
         }
+
         final items = snapshot.data ?? [];
-        if (items.isEmpty) return const NoItemsWidget();
+
+        // If stream data is empty, load from local database
+        if (items.isEmpty) {
+          return FutureBuilder<List<ISyncable>>(
+            future: LocalDatabaseService().getAllItems(tableName),
+            builder: (context, futureSnapshot) {
+              if (futureSnapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              if (futureSnapshot.hasError) {
+                return SnapshotErrorWidget(snapshot: futureSnapshot, retry: () => setState(() {}));
+              }
+
+              final localItems = futureSnapshot.data ?? [];
+              if (localItems.isEmpty) return const NoItemsWidget();
+
+              // Cast items to TodoModel for the UI
+              final todoItems = localItems.cast<TodoModel>();
+              return SWANSyncedListViewRefactored(
+                items: todoItems,
+                onUpdate: _updateItem,
+                onDelete: _deleteItem,
+              );
+            },
+          );
+        }
 
         // Cast items to TodoModel for the UI
         final todoItems = items.cast<TodoModel>();

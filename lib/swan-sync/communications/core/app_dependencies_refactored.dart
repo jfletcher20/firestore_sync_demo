@@ -1,6 +1,6 @@
-import '../../../services/sync_controller_refactored.dart';
-import '../../../models/todo_model.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:swan_sync/swan-sync/communications/services/sync_controller_refactored.dart';
+import 'package:swan_sync/swan-sync/data/models/todo_model.dart';
 
 class AppDependencies {
   static final AppDependencies _instance = AppDependencies._internal();

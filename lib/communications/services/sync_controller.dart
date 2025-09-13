@@ -26,6 +26,7 @@ class SyncController {
   final Map<String, ISyncable> _prototypes = {};
 
   static String? deviceToken = "anonymous swan v2";
+  Timer? autoTriggerSyncTimer;
 
   /// Initialize the sync controller and set up FCM listeners
   Future<void> initialize({bool performAutoSync = true}) async {
@@ -51,6 +52,18 @@ class SyncController {
     developer.log('SyncController initialized', name: 'SyncController');
 
     if (performAutoSync) autoSyncOnLaunch();
+
+    resetFullSyncTimer();
+  }
+
+  void triggerFullSync(Timer timer) {
+    developer.log('Auto-triggering full sync of all tables', name: 'SyncController');
+    fullSyncAllTables(storeFallback: false);
+  }
+
+  void resetFullSyncTimer() {
+    autoTriggerSyncTimer?.cancel();
+    autoTriggerSyncTimer = Timer.periodic(const Duration(seconds: 45), triggerFullSync);
   }
 
   Future<void> autoSyncOnLaunch() async {
@@ -82,6 +95,10 @@ class SyncController {
       if (message.data.isEmpty) {
         developer.log('FCM message has no data payload', name: 'SyncController');
         return;
+      } else {
+        // resetFullSyncTimer();
+        // normally would reset countdown for fullsync here until later, but there may be times
+        // where multiple notifications didn't arrive, so it's best to force fullsync anyway
       }
 
       final dataMessage = DataMessageResponse.fromFcmPayload(message.data);
@@ -358,7 +375,7 @@ class SyncController {
   }
 
   /// Perform full sync for a specific table (getAll + conflict resolution)
-  Future<void> fullSyncTable(String tableName) async {
+  Future<void> fullSyncTable(String tableName, {bool storeFallback = true}) async {
     try {
       developer.log('Performing full sync for table: $tableName', name: 'SyncController');
 
@@ -372,7 +389,7 @@ class SyncController {
         return;
       }
 
-      final serverItems = await _apiService.getAll(prototype);
+      final serverItems = await _apiService.getAll(prototype, storeFallback: storeFallback);
 
       if (serverItems.isNotEmpty) {
         final result = await _localDb.handleGetAllSync(tableName, serverItems);
@@ -386,14 +403,14 @@ class SyncController {
   }
 
   /// Perform full sync for all registered tables
-  Future<void> fullSyncAllTables() async {
+  Future<void> fullSyncAllTables({bool storeFallback = true}) async {
     try {
       developer.log('Performing full sync for all tables', name: 'SyncController');
 
       final tableNames = _localDb.getRegisteredTableNames();
 
       for (final tableName in tableNames) {
-        await fullSyncTable(tableName);
+        await fullSyncTable(tableName, storeFallback: storeFallback);
       }
 
       developer.log(

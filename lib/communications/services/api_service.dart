@@ -40,7 +40,7 @@ class ApiService {
   }
 
   /// Get all items for a specific syncable type
-  Future<List<ISyncable>> getAll(ISyncable prototype) async {
+  Future<List<ISyncable>> getAll(ISyncable prototype, {bool storeFallback = true}) async {
     try {
       developer.log('Fetching all items for table: ${prototype.tableName}', name: 'ApiService');
 
@@ -49,6 +49,7 @@ class ApiService {
         null,
         "<getAll has no UUID>",
         headers: _defaultHeaders,
+        storeFallback: storeFallback,
       );
 
       if (response.statusCode == 200) {

@@ -17,6 +17,7 @@ abstract class CommunicationsManager {
     int? oid,
     Map<String, String>? headers,
     bool delete = false,
+    bool storeFallback = true,
   }) async {
     RequestType? type = RequestType.detectType(oid: oid, body: data != null, delete: delete);
     try {
@@ -60,15 +61,17 @@ abstract class CommunicationsManager {
           'Request failed for table: ${prototype.tableName}, status code: ${response.statusCode}, body: ${response.body}',
           name: 'CommunicationsHandler',
         );
-        FallbackManager.addToQueue(type!, prototype.tableName, uuid, oid, data);
+        if (storeFallback) FallbackManager.addToQueue(type!, prototype.tableName, uuid, oid, data);
         return response;
       }
     } catch (e) {
-      developer.log(
-        'Error handling request: $e, sending to fallback',
-        name: 'CommunicationsHandler',
-      );
-      FallbackManager.addToQueue(type!, prototype.tableName, uuid, oid, data);
+      if (storeFallback) {
+        developer.log(
+          'Error handling request: $e, sending to fallback',
+          name: 'CommunicationsHandler',
+        );
+        FallbackManager.addToQueue(type!, prototype.tableName, uuid, oid, data);
+      }
       return http.Response('Error: $e', 500);
     }
   }

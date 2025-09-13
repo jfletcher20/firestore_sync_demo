@@ -37,11 +37,11 @@ class LocalDatabaseService {
   }
 
   /// Get or create a box for a specific table
-  Future<Box<Map<String, dynamic>>> _getBox(String tableName) async {
+  Future<Box<Map<dynamic, dynamic>>> _getBox(String tableName) async {
     if (!Hive.isBoxOpen(tableName)) {
-      return await Hive.openBox<Map<String, dynamic>>(tableName);
+      return await Hive.openBox<Map<dynamic, dynamic>>(tableName);
     }
-    return Hive.box<Map<String, dynamic>>(tableName);
+    return Hive.box<Map<dynamic, dynamic>>(tableName);
   }
 
   /// Store or update an item in the local database
@@ -76,7 +76,9 @@ class LocalDatabaseService {
         return null;
       }
 
-      return prototype.fromHiveData(data);
+      // Cast to Map<String, dynamic> to handle Hive's dynamic types
+      final hiveData = Map<String, dynamic>.from(data);
+      return prototype.fromHiveData(hiveData);
     } catch (e) {
       developer.log('Error getting item: $e', name: 'LocalDatabaseService');
       return null;
@@ -97,7 +99,9 @@ class LocalDatabaseService {
       final List<ISyncable> items = [];
       for (final data in box.values) {
         try {
-          final item = prototype.fromHiveData(data);
+          // Cast to Map<String, dynamic> to handle Hive's dynamic types
+          final hiveData = Map<String, dynamic>.from(data);
+          final item = prototype.fromHiveData(hiveData);
           items.add(item);
         } catch (e) {
           developer.log('Error parsing item from Hive data: $e', name: 'LocalDatabaseService');

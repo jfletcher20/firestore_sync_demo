@@ -1,8 +1,4 @@
-import 'package:swan_sync/screens/sync_demo_screen.dart';
-import 'package:swan_sync/core/app_dependencies.dart';
-import 'package:swan_sync/firebase_options.dart';
-
-import 'package:firebase_core/firebase_core.dart';
+import 'package:swan_sync/a-SWAN-sync-example/presentation/screens/SWAN_sync_app_initializer.dart';
 
 import 'package:flutter/material.dart';
 
@@ -22,99 +18,8 @@ class SyncDemoApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const AppInitializer(),
+      home: const SWANSyncAppInitializer(),
       debugShowCheckedModeBanner: false,
     );
-  }
-}
-
-class AppInitializer extends StatefulWidget {
-  const AppInitializer({super.key});
-
-  @override
-  State<AppInitializer> createState() => _AppInitializerState();
-}
-
-class _AppInitializerState extends State<AppInitializer> {
-  static bool hasInit = false;
-  Future<void> _initializeApp() async {
-    // Initialize Firebase
-    if (!hasInit)
-      hasInit = true;
-    else
-      return;
-    if (Firebase.apps.isEmpty) {
-      await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-    }
-
-    await AppDependencies().initialize();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return FutureBuilder<void>(
-      future: _initializeApp(),
-      builder: (context, snapshot) {
-        if (snapshot.hasError) {
-          return Scaffold(
-            body: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.error_outline, size: 64, color: Colors.red),
-                  const SizedBox(height: 16),
-                  Text('Initialization Failed', style: Theme.of(context).textTheme.headlineSmall),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Error: ${snapshot.error}',
-                    style: Theme.of(context).textTheme.bodyMedium,
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton(onPressed: () => setState(() {}), child: const Text('Retry')),
-                ],
-              ),
-            ),
-          );
-        }
-
-        if (snapshot.connectionState == ConnectionState.done) {
-          return const SyncDemoScreen();
-        }
-
-        return Scaffold(
-          body: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.sync, size: 64, color: Theme.of(context).colorScheme.primary),
-                const SizedBox(height: 24),
-                Text(
-                  'Swan Sync',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Initializing sync framework...',
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                ),
-                const SizedBox(height: 32),
-                const CircularProgressIndicator(),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  @override
-  void dispose() {
-    AppDependencies().dispose();
-    super.dispose();
   }
 }

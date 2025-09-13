@@ -54,13 +54,11 @@ class ApiService {
         final List<ISyncable> items = [];
 
         for (final json in jsonList) {
-          // Check if response has tableName, if not throw exception
           final String? tableName = json['tableName'];
           if (tableName == null) {
             throw ApiException('Server response missing tableName field: $json');
           }
 
-          // Find correct prototype and create model
           final modelPrototype = _findPrototypeByTableName(tableName);
           if (modelPrototype == null) {
             throw ApiException('No registered type found for tableName: $tableName');
@@ -101,13 +99,11 @@ class ApiService {
       if (response.statusCode == 200) {
         final json = jsonDecode(response.body);
 
-        // Check if response has tableName, if not throw exception
         final String? tableName = json['tableName'];
         if (tableName == null) {
           throw ApiException('Server response missing tableName field: $json');
         }
 
-        // Find correct prototype and create model
         final modelPrototype = _findPrototypeByTableName(tableName);
         if (modelPrototype == null) {
           throw ApiException('No registered type found for tableName: $tableName');
@@ -141,13 +137,11 @@ class ApiService {
       if (response.statusCode == 200 || response.statusCode == 201) {
         final responseJson = json.decode(response.body);
 
-        // Check if response has tableName, if not throw exception
         final String? tableName = responseJson['tableName'];
         if (tableName == null) {
           throw ApiException('Server response missing tableName field: $responseJson');
         }
 
-        // Find correct prototype and create model
         final modelPrototype = _findPrototypeByTableName(tableName);
         if (modelPrototype == null) {
           throw ApiException('No registered type found for tableName: $tableName');
@@ -180,13 +174,11 @@ class ApiService {
       if (response.statusCode == 200) {
         final responseJson = json.decode(response.body);
 
-        // Check if response has tableName, if not throw exception
         final String? tableName = responseJson['tableName'];
         if (tableName == null) {
           throw ApiException('Server response missing tableName field: $responseJson');
         }
 
-        // Find correct prototype and create model
         final modelPrototype = _findPrototypeByTableName(tableName);
         if (modelPrototype == null) {
           throw ApiException('No registered type found for tableName: $tableName');

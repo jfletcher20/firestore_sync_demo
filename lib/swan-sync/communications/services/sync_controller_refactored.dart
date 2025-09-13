@@ -34,6 +34,7 @@ class SyncController {
     developer.log('Initializing SyncController', name: 'SyncController');
 
     await _localDb.initialize();
+    _localDb.monitorFallbackQueue();
 
     //TODO: requestpermission?
     // store the token in static variable
@@ -48,9 +49,6 @@ class SyncController {
     // Set up FCM message handling
     FirebaseMessaging.onMessage.listen(_handleFcmMessage);
     FirebaseMessaging.onMessageOpenedApp.listen(_handleFcmMessage);
-
-    // Handle background messages
-    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
     _isInitialized = true;
     developer.log('SyncController initialized', name: 'SyncController');
@@ -169,10 +167,7 @@ class SyncController {
         return;
       }
 
-      // Fetch full data from server using the effective ID
       final serverData = await _apiService.getById(prototype, dataMessage.effectiveId!);
-
-      // Handle the incoming data with conflict resolution
       final result = await _localDb.handleIncomingData(serverData);
 
       switch (result) {
@@ -436,13 +431,4 @@ class SyncController {
   void dispose() {
     _fcmSubscription?.cancel();
   }
-}
-
-/// Background message handler (must be top-level function)
-@pragma('vm:entry-point')
-Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  developer.log('Handling background FCM message: ${message.messageId}', name: 'SyncController');
-
-  // For background messages, we can only do minimal processing
-  // The main app will handle full sync when it comes to foreground
 }

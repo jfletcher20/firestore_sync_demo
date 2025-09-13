@@ -1,8 +1,11 @@
+import 'package:swan_sync/swan-sync/communications/services/communications_handler.dart';
+import 'package:swan_sync/swan-sync/communications/services/fallback_service.dart';
 import 'package:swan_sync/swan-sync/data/i_syncable.dart';
 
 import 'package:hive_flutter/hive_flutter.dart';
 
 import 'dart:developer' as developer;
+import 'dart:convert';
 import 'dart:async';
 
 class LocalDatabaseService {
@@ -80,7 +83,6 @@ class LocalDatabaseService {
         return null;
       }
 
-      // Cast to Map<String, dynamic> to handle Hive's dynamic types
       final hiveData = Map<String, dynamic>.from(data);
       return prototype.fromHiveData(hiveData);
     } catch (e) {
@@ -103,7 +105,6 @@ class LocalDatabaseService {
       final List<ISyncable> items = [];
       for (final data in box.values) {
         try {
-          // Cast to Map<String, dynamic> to handle Hive's dynamic types
           final hiveData = Map<String, dynamic>.from(data);
           final item = prototype.fromHiveData(hiveData);
           items.add(item);
@@ -161,9 +162,7 @@ class LocalDatabaseService {
       int updatedCount = 0;
       int addedCount = 0;
 
-      // Check for local items that were deleted on server
       for (final localItem in localItems) {
-        // Only check items that have been synced to server (oid != -1)
         if (localItem.oid != -1 && !serverUuids.contains(localItem.uuid)) {
           await deleteItem(tableName, localItem.uuid);
           deletedCount++;
@@ -174,18 +173,15 @@ class LocalDatabaseService {
         }
       }
 
-      // Store/update server items
       final localItemsByUuid = {for (var item in localItems) item.uuid: item};
 
       for (final serverItem in serverItems) {
         final localItem = localItemsByUuid[serverItem.uuid];
 
         if (localItem == null) {
-          // New item from server
           await storeItem(serverItem);
           addedCount++;
         } else {
-          // Existing item - check for conflicts
           final result = await _resolveConflict(localItem, serverItem);
           if (result == SyncConflictResult.stored ||
               result == SyncConflictResult.timestampUpdated) {
@@ -218,14 +214,12 @@ class LocalDatabaseService {
       final existingItem = await getItem(incomingData.tableName, incomingData.uuid);
 
       if (existingItem == null) {
-        // No local copy exists, store the incoming data
         await storeItem(incomingData);
 
         developer.log('Stored new item: ${incomingData.uuid}', name: 'LocalDatabaseService');
         return SyncConflictResult.stored;
       }
 
-      // Item exists locally, resolve conflict
       return await _resolveConflict(existingItem, incomingData);
     } catch (e) {
       developer.log('Error handling incoming data: $e', name: 'LocalDatabaseService');
@@ -237,20 +231,20 @@ class LocalDatabaseService {
   Future<SyncConflictResult> _resolveConflict(ISyncable localItem, ISyncable incomingData) async {
     developer.log('Resolving conflict for: ${localItem.uuid}', name: 'LocalDatabaseService');
 
-    // Compare timestamps
+    timestampUpdated() async {
+      final updatedItem = localItem.copyWith(
+        oid: incomingData.oid,
+        updatedAt: incomingData.updatedAt,
+      );
+      await storeItem(updatedItem);
+      developer.log('Updated timestamps for: ${localItem.uuid}', name: 'LocalDatabaseService');
+      return SyncConflictResult.timestampUpdated;
+    }
+
     if (localItem.isNewerThan(incomingData)) {
-      // Local is newer
       if (localItem.hasSameContentAs(incomingData)) {
-        // Same data, just update timestamps to match server
-        final updatedItem = localItem.copyWith(
-          oid: incomingData.oid,
-          updatedAt: incomingData.updatedAt,
-        );
-        await storeItem(updatedItem);
-        developer.log('Updated timestamps for: ${localItem.uuid}', name: 'LocalDatabaseService');
-        return SyncConflictResult.timestampUpdated;
+        return timestampUpdated();
       } else {
-        // Different data, local is newer - need to send to server
         developer.log(
           'Local data is newer, needs server update: ${localItem.uuid}',
           name: 'LocalDatabaseService',
@@ -258,18 +252,9 @@ class LocalDatabaseService {
         return SyncConflictResult.needsServerUpdate;
       }
     } else if (incomingData.isNewerThan(localItem)) {
-      // Incoming data is newer or same timestamp
       if (localItem.hasSameContentAs(incomingData)) {
-        // Same data, just update timestamps and oid
-        final updatedItem = localItem.copyWith(
-          oid: incomingData.oid,
-          updatedAt: incomingData.updatedAt,
-        );
-        await storeItem(updatedItem);
-        developer.log('Updated timestamps for: ${localItem.uuid}', name: 'LocalDatabaseService');
-        return SyncConflictResult.timestampUpdated;
+        return timestampUpdated();
       } else {
-        // Different data, incoming is newer - store incoming data
         await storeItem(incomingData);
         developer.log(
           'Stored newer incoming data for: ${localItem.uuid}',
@@ -284,16 +269,42 @@ class LocalDatabaseService {
     }
   }
 
-  /// Create a new item locally (will need to be synced)
-  Future<ISyncable> createItem(ISyncable prototype, Map<String, dynamic> data) async {
-    try {
-      // Use the prototype's fromHiveData or a factory method to create the item
-      // For now, we'll need a different approach - this will depend on the specific model
-      throw UnimplementedError('Use model-specific factory methods to create items');
-    } catch (e) {
-      developer.log('Error creating item: $e', name: 'LocalDatabaseService');
-      rethrow;
-    }
+  // monitor the fallback queue's responses and update local db accordingly
+  Future<void> monitorFallbackQueue() async {
+    FallbackQueueManager.fallbackQueueStream.listen((event) async {
+      final response = event.response;
+      final type = event.type;
+      final tableName = event.tableName;
+
+      final modelPrototype = _findPrototypeByTableName(tableName)!;
+
+      switch (type) {
+        case RequestType.GET:
+          final json = jsonDecode(response.body);
+          final item = modelPrototype.fromServerData(json);
+          handleIncomingData(item);
+          break;
+        case RequestType.GET_ALL:
+          final List<dynamic> jsonList = json.decode(response.body);
+          final List<ISyncable> items = [];
+          for (final json in jsonList) items.add(modelPrototype.fromServerData(json));
+          handleGetAllSync(tableName, items);
+          break;
+        case RequestType.POST:
+          final responseJson = json.decode(response.body);
+          final createdItem = modelPrototype.fromServerData(responseJson);
+          handleIncomingData(createdItem);
+          break;
+        case RequestType.PUT:
+          final responseJson = json.decode(response.body);
+          final updatedItem = modelPrototype.fromServerData(responseJson);
+          handleIncomingData(updatedItem);
+          break;
+        case RequestType.DELETE:
+          deleteItem(tableName, event.uuid);
+          break;
+      }
+    });
   }
 
   /// Update an existing item locally (will need to be synced)

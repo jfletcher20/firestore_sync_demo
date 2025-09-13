@@ -77,7 +77,7 @@ class SyncController {
   /// Handle FCM messages
   Future<void> _handleFcmMessage(RemoteMessage message) async {
     try {
-      developer.log('Received FCM message: ${message.messageId}', name: 'SyncController');
+      print('[SyncController] [FCM] Received FCM message: ${message.data}');
 
       if (message.data.isEmpty) {
         developer.log('FCM message has no data payload', name: 'SyncController');

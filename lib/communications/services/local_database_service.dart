@@ -91,6 +91,27 @@ class LocalDatabaseService {
     }
   }
 
+  Future<ISyncable?> getItemById(String tableName, int oid) async {
+    try {
+      final box = await _getBox(tableName);
+      final data = box.values.firstWhere((item) => item['oid'] == oid, orElse: () => {});
+
+      if (data.isEmpty) return null;
+
+      final prototype = _findPrototypeByTableName(tableName);
+      if (prototype == null) {
+        developer.log('No prototype found for table: $tableName', name: 'LocalDatabaseService');
+        return null;
+      }
+
+      final hiveData = Map<String, dynamic>.from(data);
+      return prototype.fromHiveData(hiveData);
+    } catch (e) {
+      developer.log('Error getting item: $e', name: 'LocalDatabaseService');
+      return null;
+    }
+  }
+
   /// Get all items from a specific table
   Future<List<ISyncable>> getAllItems(String tableName) async {
     try {
@@ -264,15 +285,24 @@ class LocalDatabaseService {
       }
     } else {
       // do nothing, timestamps are identical
-      developer.log('No changes needed for: ${localItem.uuid}', name: 'LocalDatabaseService');
-      return SyncConflictResult.noChanges;
+      if (localItem.hasSameContentAs(incomingData)) {
+        developer.log('No changes needed for: ${localItem.uuid}', name: 'LocalDatabaseService');
+        return SyncConflictResult.noChanges;
+      } else {
+        await storeItem(incomingData);
+        developer.log(
+          'Timestamps identical but content differs, stored incoming data for: ${localItem.uuid}',
+          name: 'LocalDatabaseService',
+        );
+        return SyncConflictResult.stored;
+      }
     }
   }
 
   /// Monitor the fallback queue's responses and update local db accordingly
   Future<void> monitorFallbackQueue() async {
     FallbackManager.fallbackQueueStream.listen((event) async {
-      print("Fallback event received: $event");
+      print("Fallback event received: $event ${json.decode(event.response.body)}");
       final response = event.response;
       final type = event.type;
       final tableName = event.tableName;

@@ -177,7 +177,14 @@ abstract class FallbackManager {
 
       switch (type) {
         case RequestType.GET_ALL:
-          response = await http.get(Uri.parse(prototype.getAllEndpoint));
+          response = await http
+              .get(Uri.parse(prototype.getAllEndpoint))
+              .timeout(
+                const Duration(seconds: 10),
+                onTimeout: () {
+                  throw TimeoutException('GET_ALL request timed out');
+                },
+              );
           break;
 
         case RequestType.GET:
@@ -185,7 +192,14 @@ abstract class FallbackManager {
             developer.log('OID required for GET request', name: 'FallbackQueueManager');
             return false;
           }
-          response = await http.get(Uri.parse('${prototype.getByIdEndpoint}/$oid'));
+          response = await http
+              .get(Uri.parse('${prototype.getByIdEndpoint}/$oid'))
+              .timeout(
+                const Duration(seconds: 10),
+                onTimeout: () {
+                  throw TimeoutException('GET_ALL request timed out');
+                },
+              );
           break;
 
         case RequestType.POST:
@@ -193,11 +207,18 @@ abstract class FallbackManager {
             developer.log('Data required for POST request', name: 'FallbackQueueManager');
             return false;
           }
-          response = await http.post(
-            Uri.parse(requestData.postEndpoint),
-            headers: {'Content-Type': 'application/json'},
-            body: json.encode(requestData.toServerData()),
-          );
+          response = await http
+              .post(
+                Uri.parse(requestData.postEndpoint),
+                headers: {'Content-Type': 'application/json'},
+                body: json.encode(requestData.toServerData()),
+              )
+              .timeout(
+                const Duration(seconds: 10),
+                onTimeout: () {
+                  throw TimeoutException('POST request timed out');
+                },
+              );
           break;
 
         case RequestType.PUT:
@@ -205,11 +226,18 @@ abstract class FallbackManager {
             developer.log('Data and OID required for PUT request', name: 'FallbackQueueManager');
             return false;
           }
-          response = await http.put(
-            Uri.parse('${requestData.putEndpoint}/$oid'),
-            headers: {'Content-Type': 'application/json'},
-            body: json.encode(requestData.toServerData()),
-          );
+          response = await http
+              .put(
+                Uri.parse('${requestData.putEndpoint}/$oid'),
+                headers: {'Content-Type': 'application/json'},
+                body: json.encode(requestData.toServerData()),
+              )
+              .timeout(
+                const Duration(seconds: 10),
+                onTimeout: () {
+                  throw TimeoutException('PUT request timed out');
+                },
+              );
           break;
 
         case RequestType.DELETE:
@@ -217,7 +245,14 @@ abstract class FallbackManager {
             developer.log('OID required for DELETE request', name: 'FallbackQueueManager');
             return false;
           }
-          response = await http.delete(Uri.parse('${prototype.deleteEndpoint}/$oid'));
+          response = await http
+              .delete(Uri.parse('${prototype.deleteEndpoint}/$oid'))
+              .timeout(
+                const Duration(seconds: 10),
+                onTimeout: () {
+                  throw TimeoutException('DELETE request timed out');
+                },
+              );
           break;
       }
 
@@ -253,7 +288,10 @@ abstract class FallbackManager {
   static final StreamController<
     ({http.Response response, RequestType type, String uuid, String tableName})
   >
-  _fallbackResponseController = StreamController.broadcast();
+  _fallbackResponseController =
+      StreamController<
+        ({http.Response response, RequestType type, String uuid, String tableName})
+      >.broadcast();
 
   static Stream<({http.Response response, RequestType type, String uuid, String tableName})>
   get fallbackQueueStream => _fallbackResponseController.stream;

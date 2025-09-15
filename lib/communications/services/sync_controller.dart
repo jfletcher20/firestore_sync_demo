@@ -15,7 +15,7 @@ class SyncController {
   factory SyncController() => _instance;
   SyncController._internal();
 
-  final LocalDatabaseService _localDb = LocalDatabaseService();
+  final LocalDatabaseService localDatabase = LocalDatabaseService();
   final ApiService _apiService = ApiService();
 
   StreamSubscription<RemoteMessage>? _fcmSubscription;
@@ -34,8 +34,8 @@ class SyncController {
 
     developer.log('Initializing SyncController', name: 'SyncController');
 
-    await _localDb.initialize();
-    _localDb.monitorFallbackQueue();
+    await localDatabase.initialize();
+    localDatabase.monitorFallbackQueue();
 
     // TODO: requestpermission? shouldn't have to since we're dealing with data messages
     if (defaultTargetPlatform == TargetPlatform.iOS)
@@ -79,7 +79,7 @@ class SyncController {
   /// Register a syncable type with both local storage and API service
   void registerSyncableType(ISyncable prototype) {
     _prototypes[prototype.tableName] = prototype;
-    _localDb.registerSyncableType(prototype);
+    localDatabase.registerSyncableType(prototype);
     _apiService.registerSyncableType(prototype);
     developer.log('Registered syncable type: ${prototype.tableName}', name: 'SyncController');
   }
@@ -98,7 +98,8 @@ class SyncController {
       } else {
         // resetFullSyncTimer();
         // normally would reset countdown for fullsync here until later, but there may be times
-        // where multiple notifications didn't arrive, so it's best to force fullsync anyway
+        // where multiple notifications didn't arrive or server failed to send notifications,
+        // so it's best to force an occasional fullsync anyway
       }
 
       final dataMessage = DataMessageResponse.fromFcmPayload(message.data);
@@ -126,7 +127,7 @@ class SyncController {
         name: 'SyncController',
       );
 
-      await _localDb.deleteItem(dataMessage.tableName, dataMessage.uuid);
+      await localDatabase.deleteItem(dataMessage.tableName, dataMessage.uuid);
 
       developer.log(
         'Successfully deleted item from FCM: ${dataMessage.uuid}',
@@ -163,7 +164,7 @@ class SyncController {
       }
 
       final serverData = await _apiService.getById(prototype, dataMessage.effectiveId!);
-      final result = await _localDb.handleIncomingData(serverData);
+      final result = await localDatabase.handleIncomingData(serverData);
 
       switch (result) {
         case SyncConflictResult.stored:
@@ -198,7 +199,7 @@ class SyncController {
   /// Sync a local item to the server
   Future<void> _syncLocalItemToServer(String tableName, String uuid) async {
     try {
-      final localItem = await _localDb.getItem(tableName, uuid);
+      final localItem = await localDatabase.getItem(tableName, uuid);
       if (localItem == null) {
         developer.log('Local item not found for server sync: $uuid', name: 'SyncController');
         return;
@@ -217,7 +218,7 @@ class SyncController {
       }
 
       // update local (adds oid, in the future might add other data)
-      await _localDb.storeItem(result);
+      await localDatabase.storeItem(result);
     } catch (e) {
       developer.log('Error syncing local item to server: $e', name: 'SyncController');
     }
@@ -228,18 +229,14 @@ class SyncController {
     try {
       developer.log('Creating new item: ${item.uuid} in ${item.tableName}', name: 'SyncController');
 
-      // Store locally first
-      await _localDb.storeItem(item);
+      await localDatabase.storeItem(item);
 
-      // Try to sync to server immediately
       try {
         final serverResult = await _apiService.create(item);
-        // Update local item with server data
-        await _localDb.storeItem(serverResult);
+        await localDatabase.storeItem(serverResult);
         return serverResult;
       } catch (e) {
         developer.log('Failed to sync new item to server immediately: $e', name: 'SyncController');
-        // Item remains local with needsSync = true
       }
 
       return item;
@@ -254,30 +251,24 @@ class SyncController {
     try {
       developer.log('Updating item: ${item.uuid} in ${item.tableName}', name: 'SyncController');
 
-      // Store locally first
-      await _localDb.storeItem(item);
+      await localDatabase.storeItem(item);
 
-      // Try to sync to server immediately
       try {
         ISyncable? serverResult;
 
         if (item.needsSync) {
-          // Item hasn't been synced yet, create on server
           serverResult = await _apiService.create(item);
         } else {
-          // Update existing item on server
           serverResult = await _apiService.update(item, item.oid);
         }
 
-        // Update local item with server data
-        await _localDb.storeItem(serverResult);
+        await localDatabase.storeItem(serverResult);
         return serverResult;
       } catch (e) {
         developer.log(
           'Failed to sync updated item to server immediately: $e',
           name: 'SyncController',
         );
-        // Item remains local with changes
       }
 
       return item;
@@ -292,13 +283,12 @@ class SyncController {
     try {
       developer.log('Deleting item: $uuid from $tableName', name: 'SyncController');
 
-      final localItem = await _localDb.getItem(tableName, uuid);
+      final localItem = await localDatabase.getItem(tableName, uuid);
       if (localItem == null) {
         developer.log('Item not found for deletion: $uuid', name: 'SyncController');
         return;
       }
 
-      // Try to delete on server first if it was synced
       if (!localItem.needsSync) {
         try {
           final prototype = _getPrototypeByTableName(tableName);
@@ -308,29 +298,28 @@ class SyncController {
                 'Successfully deleted item on server: ${localItem.oid}',
                 name: 'SyncController',
               );
-              _localDb.deleteItem(tableName, uuid);
+              localDatabase.deleteItem(tableName, uuid);
             });
             final deletedItem = localItem.copyWith(
               isDeleted: true,
               updatedAt: DateTime.now().toUtc(),
             );
-            await _localDb.storeItem(deletedItem);
+            await localDatabase.storeItem(deletedItem);
           }
         } catch (e) {
           developer.log(
             'Failed to delete on server: $e - marking as deleted locally',
             name: 'SyncController',
           );
-          // Mark as deleted locally instead of actually deleting
+          // mark as deleted otherwise when syncing it will download it again
           final deletedItem = localItem.copyWith(
             isDeleted: true,
             updatedAt: DateTime.now().toUtc(),
           );
-          await _localDb.storeItem(deletedItem);
+          await localDatabase.storeItem(deletedItem);
         }
       } else {
-        // Item was never synced to server, safe to delete locally
-        await _localDb.deleteItem(tableName, uuid);
+        await localDatabase.deleteItem(tableName, uuid);
         developer.log('Deleted unsynced item locally: $uuid', name: 'SyncController');
       }
     } catch (e) {
@@ -341,17 +330,17 @@ class SyncController {
 
   /// Get all items from a specific table
   Future<List<ISyncable>> getItems(String tableName) async {
-    return await _localDb.getAllItems(tableName);
+    return await localDatabase.getAllItems(tableName);
   }
 
   /// Get a specific item by UUID
   Future<ISyncable?> getItem(String tableName, String uuid) async {
-    return await _localDb.getItem(tableName, uuid);
+    return await localDatabase.getItem(tableName, uuid);
   }
 
   /// Watch changes to a specific table
   Stream<List<ISyncable>> watchTable(String tableName) {
-    return _localDb.watchTable(tableName);
+    return localDatabase.watchTable(tableName);
   }
 
   /// Sync all pending items for a specific table
@@ -359,7 +348,7 @@ class SyncController {
     try {
       developer.log('Syncing pending items for table: $tableName', name: 'SyncController');
 
-      final pendingItems = await _localDb.getItemsNeedingSync(tableName);
+      final pendingItems = await localDatabase.getItemsNeedingSync(tableName);
 
       for (final item in pendingItems) {
         await _syncLocalItemToServer(tableName, item.uuid);
@@ -379,10 +368,8 @@ class SyncController {
     try {
       developer.log('Performing full sync for table: $tableName', name: 'SyncController');
 
-      // First sync any pending local items
       await syncPendingItems(tableName);
 
-      // Then get all items from server and reconcile
       final prototype = _getPrototypeByTableName(tableName);
       if (prototype == null) {
         developer.log('No prototype found for table: $tableName', name: 'SyncController');
@@ -392,7 +379,7 @@ class SyncController {
       final serverItems = await _apiService.getAll(prototype, storeFallback: storeFallback);
 
       if (serverItems.isNotEmpty) {
-        final result = await _localDb.handleGetAllSync(tableName, serverItems);
+        final result = await localDatabase.handleGetAllSync(tableName, serverItems);
         developer.log('GetAll sync result for $tableName: $result', name: 'SyncController');
       }
 
@@ -407,7 +394,7 @@ class SyncController {
     try {
       developer.log('Performing full sync for all tables', name: 'SyncController');
 
-      final tableNames = _localDb.getRegisteredTableNames();
+      final tableNames = localDatabase.getRegisteredTableNames();
 
       for (final tableName in tableNames) {
         await fullSyncTable(tableName, storeFallback: storeFallback);
@@ -423,22 +410,14 @@ class SyncController {
   }
 
   /// Check if server is reachable
-  Future<bool> isServerReachable() async {
-    return await _apiService.isServerReachable();
-  }
+  Future<bool> isServerReachable() async => await _apiService.isServerReachable();
 
   /// Clear all data for a specific table
-  Future<void> clearTable(String tableName) async {
-    await _localDb.clearTable(tableName);
-  }
+  Future<void> clearTable(String tableName) async => await localDatabase.clearTable(tableName);
 
   /// Get list of all registered table names
-  List<String> getRegisteredTableNames() {
-    return _localDb.getRegisteredTableNames();
-  }
+  List<String> getRegisteredTableNames() => localDatabase.getRegisteredTableNames();
 
   /// Dispose resources
-  void dispose() {
-    _fcmSubscription?.cancel();
-  }
+  void dispose() => _fcmSubscription?.cancel();
 }

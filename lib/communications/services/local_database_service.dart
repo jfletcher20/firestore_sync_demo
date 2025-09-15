@@ -1,5 +1,5 @@
-import 'package:swan_sync/communications/managers/communications_manager.dart';
-import 'package:swan_sync/communications/managers/fallback_manager.dart';
+import 'package:swan_sync/communications/static/communications.dart';
+import 'package:swan_sync/communications/static/fallback.dart';
 import 'package:swan_sync/data/i_syncable.dart';
 
 import 'package:hive_flutter/hive_flutter.dart';
@@ -128,12 +128,7 @@ class LocalDatabaseService {
         try {
           final hiveData = Map<String, dynamic>.from(data);
           final item = prototype.fromHiveData(hiveData);
-
-          // Skip deleted items unless explicitly requested
-          if (!includeDeleted && item.isDeleted) {
-            continue;
-          }
-
+          if (!includeDeleted && item.isDeleted) continue;
           items.add(item);
         } catch (e) {
           developer.log('Error parsing item from Hive data: $e', name: 'LocalDatabaseService');
@@ -189,15 +184,12 @@ class LocalDatabaseService {
       int addedCount = 0;
       int serverDeletedCount = 0;
 
-      // First, check for items that were locally deleted while offline
-      // and need to be deleted on the server
       for (final localItem in localItems) {
         if (localItem.isDeleted && localItem.oid != -1) {
-          // Item was deleted locally but has a server ID, send delete request
           try {
             final prototype = _findPrototypeByTableName(tableName);
             if (prototype != null) {
-              await CommunicationsManager.handleRequest(
+              await Communications.handleRequest(
                 prototype,
                 null,
                 localItem.uuid,
@@ -220,7 +212,6 @@ class LocalDatabaseService {
         }
       }
 
-      // Then handle normal sync logic - remove local items that don't exist on server
       for (final localItem in localItems) {
         if (localItem.oid != -1 && !localItem.isDeleted && !serverUuids.contains(localItem.uuid)) {
           await deleteItem(tableName, localItem.uuid);
@@ -339,7 +330,7 @@ class LocalDatabaseService {
 
   /// Monitor the fallback queue's responses and update local db accordingly
   Future<void> monitorFallbackQueue() async {
-    FallbackManager.fallbackQueueStream.listen((event) async {
+    Fallback.fallbackQueueStream.listen((event) async {
       print("Fallback event received: $event ${json.decode(event.response.body)}");
       final response = event.response;
       final type = event.type;
@@ -416,8 +407,7 @@ class LocalDatabaseService {
   /// Clear all data for a specific table
   Future<void> clearTable(String tableName) async {
     try {
-      final box = await _getBox(tableName);
-      await box.clear();
+      await (await _getBox(tableName)).clear();
       developer.log('Cleared table: $tableName', name: 'LocalDatabaseService');
     } catch (e) {
       developer.log('Error clearing table: $e', name: 'LocalDatabaseService');
@@ -425,21 +415,17 @@ class LocalDatabaseService {
   }
 
   /// Get all registered table names
-  List<String> getRegisteredTableNames() {
-    return _registeredTypes.map((type) => type.tableName).toList();
-  }
+  List<String> getRegisteredTableNames() => _registeredTypes.map((t) => t.tableName).toList();
 
   /// Close all boxes and cleanup
-  Future<void> dispose() async {
-    await Hive.close();
-  }
+  Future<void> dispose() async => await Hive.close();
 }
 
 /// Result of sync conflict resolution
 enum SyncConflictResult {
-  stored, // Incoming data was stored
-  needsServerUpdate, // Local data is newer, needs to be sent to server
-  timestampUpdated, // Only timestamps were updated
-  noChanges, // No changes were made
-  error, // An error occurred
+  stored, // stored incoming
+  needsServerUpdate, // local is newer, update on server
+  timestampUpdated, // superficial timestamp difference; local timestamp updated
+  noChanges, // do nothing
+  error, // something went wrong
 }

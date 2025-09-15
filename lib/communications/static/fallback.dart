@@ -4,12 +4,12 @@ import 'dart:async';
 
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:swan_sync/communications/managers/communications_manager.dart';
+import 'package:swan_sync/communications/static/communications.dart';
 import 'package:swan_sync/communications/services/sync_controller.dart';
 import 'package:swan_sync/data/i_syncable.dart';
 import 'package:swan_sync/communications/services/local_database_service.dart';
 
-abstract class FallbackManager {
+abstract class Fallback {
   static const String _getQueueKey = 'fallback_queue_get';
   static const String _getAllQueueKey = 'fallback_queue_get_all';
   static const String _postQueueKey = 'fallback_queue_post';
@@ -60,10 +60,10 @@ abstract class FallbackManager {
       await prefs.setString(queueKey, json.encode(queue));
       developer.log(
         'Added ${type.name} request for $uuid to ${type.name} queue',
-        name: 'FallbackQueueManager',
+        name: 'FallbackQueue',
       );
     } catch (e) {
-      developer.log('Error adding to fallback queue: $e', name: 'FallbackQueueManager');
+      developer.log('Error adding to fallback queue: $e', name: 'FallbackQueue');
     }
   }
 
@@ -83,7 +83,7 @@ abstract class FallbackManager {
 
         developer.log(
           'Processing ${queue.length} items in ${requestType.name} queue',
-          name: 'FallbackQueueManager',
+          name: 'FallbackQueue',
         );
         final List<dynamic> remainingItems = [];
 
@@ -95,7 +95,7 @@ abstract class FallbackManager {
           } catch (e) {
             developer.log(
               'Error processing ${requestType.name} queue item ${item['uuid']}: $e',
-              name: 'FallbackQueueManager',
+              name: 'FallbackQueue',
             );
             remainingItems.add(item);
           }
@@ -110,7 +110,7 @@ abstract class FallbackManager {
         if (queue.isNotEmpty) {
           developer.log(
             '${requestType.name} queue: $processed processed, ${remainingItems.length} remaining',
-            name: 'FallbackQueueManager',
+            name: 'FallbackQueue',
           );
         }
       }
@@ -118,18 +118,18 @@ abstract class FallbackManager {
       if (totalProcessed > 0 || totalRemaining > 0) {
         developer.log(
           'Total: $totalProcessed items processed successfully, $totalRemaining remaining across all queues',
-          name: 'FallbackQueueManager',
+          name: 'FallbackQueue',
         );
         if (totalRemaining == 0)
           SyncController().fullSyncAllTables().then((_) {
             developer.log(
               'Triggered full sync after processing fallback queues',
-              name: 'FallbackQueueManager',
+              name: 'FallbackQueue',
             );
           });
       }
     } catch (e) {
-      developer.log('Error processing fallback queues: $e', name: 'FallbackQueueManager');
+      developer.log('Error processing fallback queues: $e', name: 'FallbackQueue');
     }
     underway = false;
     return true;
@@ -143,7 +143,7 @@ abstract class FallbackManager {
       final oid = item['oid'] as int?;
       final dataJson = item['data'] as Map<String, dynamic>?;
 
-      developer.log('Retrying ${type.name} request for $uuid', name: 'FallbackQueueManager');
+      developer.log('Retrying ${type.name} request for $uuid', name: 'FallbackQueue');
 
       final localDb = LocalDatabaseService();
       final registeredTypes = localDb.registeredTypes;
@@ -157,10 +157,7 @@ abstract class FallbackManager {
       }
 
       if (prototype == null) {
-        developer.log(
-          'No registered type found for table: $tableName',
-          name: 'FallbackQueueManager',
-        );
+        developer.log('No registered type found for table: $tableName', name: 'FallbackQueue');
         return false;
       }
 
@@ -172,12 +169,12 @@ abstract class FallbackManager {
           if ((type == RequestType.POST || type == RequestType.PUT) && requestData == null) {
             developer.log(
               'Data for ${type.name} request $uuid not found in local DB, removing from queue',
-              name: 'FallbackQueueManager',
+              name: 'FallbackQueue',
             );
             return true;
           }
         } catch (e) {
-          developer.log('Error reconstructing data from JSON: $e', name: 'FallbackQueueManager');
+          developer.log('Error reconstructing data from JSON: $e', name: 'FallbackQueue');
           return false;
         }
       }
@@ -198,7 +195,7 @@ abstract class FallbackManager {
 
         case RequestType.GET:
           if (oid == null) {
-            developer.log('OID required for GET request', name: 'FallbackQueueManager');
+            developer.log('OID required for GET request', name: 'FallbackQueue');
             return false;
           }
           response = await http
@@ -213,7 +210,7 @@ abstract class FallbackManager {
 
         case RequestType.POST:
           if (requestData == null) {
-            developer.log('Data required for POST request', name: 'FallbackQueueManager');
+            developer.log('Data required for POST request', name: 'FallbackQueue');
             return false;
           }
           response = await http
@@ -232,7 +229,7 @@ abstract class FallbackManager {
 
         case RequestType.PUT:
           if (requestData == null || oid == null) {
-            developer.log('Data and OID required for PUT request', name: 'FallbackQueueManager');
+            developer.log('Data and OID required for PUT request', name: 'FallbackQueue');
             return false;
           }
           response = await http
@@ -251,7 +248,7 @@ abstract class FallbackManager {
 
         case RequestType.DELETE:
           if (oid == null) {
-            developer.log('OID required for DELETE request', name: 'FallbackQueueManager');
+            developer.log('OID required for DELETE request', name: 'FallbackQueue');
             return false;
           }
           response = await http
@@ -273,7 +270,7 @@ abstract class FallbackManager {
       if (success) {
         developer.log(
           'Successfully retried ${type.name} for $uuid (${response.statusCode})',
-          name: 'FallbackQueueManager',
+          name: 'FallbackQueue',
         );
         _fallbackResponseController.add((
           response: response,
@@ -284,13 +281,13 @@ abstract class FallbackManager {
       } else {
         developer.log(
           'Retry failed for ${type.name} $uuid (${response.statusCode}): ${response.body}',
-          name: 'FallbackQueueManager',
+          name: 'FallbackQueue',
         );
       }
 
       return success;
     } catch (e) {
-      developer.log('Error retrying queue item: $e', name: 'FallbackQueueManager');
+      developer.log('Error retrying queue item: $e', name: 'FallbackQueue');
       return false;
     }
   }
@@ -319,7 +316,7 @@ abstract class FallbackManager {
       if (await currentRequestFinished) currentRequestFinished = processQueues();
     });
 
-    developer.log('Started fallback queue retry timer', name: 'FallbackQueueManager');
+    developer.log('Started fallback queue retry timer', name: 'FallbackQueue');
   }
 
   static Future<int> getQueueSize() async {
@@ -336,7 +333,7 @@ abstract class FallbackManager {
 
       return totalSize;
     } catch (e) {
-      developer.log('Error getting queue size: $e', name: 'FallbackQueueManager');
+      developer.log('Error getting queue size: $e', name: 'FallbackQueue');
       return 0;
     }
   }
@@ -349,7 +346,7 @@ abstract class FallbackManager {
       final List<dynamic> queue = json.decode(queueJson);
       return queue.length;
     } catch (e) {
-      developer.log('Error getting queue size for ${type.name}: $e', name: 'FallbackQueueManager');
+      developer.log('Error getting queue size for ${type.name}: $e', name: 'FallbackQueue');
       return 0;
     }
   }

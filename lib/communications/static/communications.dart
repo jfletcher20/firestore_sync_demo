@@ -1,6 +1,6 @@
 // ignore_for_file: constant_identifier_names
 
-import 'package:swan_sync/communications/managers/fallback_manager.dart';
+import 'package:swan_sync/communications/static/fallback.dart';
 import 'package:swan_sync/data/i_syncable.dart';
 
 import 'package:http/http.dart' as http;
@@ -9,7 +9,7 @@ import 'dart:developer' as developer;
 import 'dart:convert';
 import 'dart:async';
 
-abstract class CommunicationsManager {
+abstract class Communications {
   static Future<http.Response> handleRequest(
     ISyncable prototype,
     ISyncable? data,
@@ -61,7 +61,7 @@ abstract class CommunicationsManager {
           'Request failed for table: ${prototype.tableName}, status code: ${response.statusCode}, body: ${response.body}',
           name: 'CommunicationsHandler',
         );
-        if (storeFallback) FallbackManager.addToQueue(type!, prototype.tableName, uuid, oid, data);
+        if (storeFallback) Fallback.addToQueue(type!, prototype.tableName, uuid, oid, data);
         return response;
       }
     } catch (e) {
@@ -70,7 +70,7 @@ abstract class CommunicationsManager {
           'Error handling request: $e, sending to fallback',
           name: 'CommunicationsHandler',
         );
-        FallbackManager.addToQueue(type!, prototype.tableName, uuid, oid, data);
+        Fallback.addToQueue(type!, prototype.tableName, uuid, oid, data);
       }
       return http.Response('Error: $e', 500);
     }

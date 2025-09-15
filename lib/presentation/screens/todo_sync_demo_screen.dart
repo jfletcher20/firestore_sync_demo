@@ -1,11 +1,10 @@
-import 'package:swan_sync/communications/services/local_database_service.dart';
-import 'package:swan_sync/data/i_syncable.dart';
 import 'package:swan_sync/presentation/widgets/server_reachable_widget_refactored.dart';
-import 'package:swan_sync/presentation/widgets/synced_list_view.dart';
 import 'package:swan_sync/presentation/widgets/snapshot_error_widget.dart';
+import 'package:swan_sync/presentation/widgets/synced_list_view.dart';
 import 'package:swan_sync/presentation/widgets/no_items_widget.dart';
 import 'package:swan_sync/communications/core/app_dependencies.dart';
 import 'package:swan_sync/data/models/todo_model.dart';
+import 'package:swan_sync/data/i_syncable.dart';
 
 import 'package:flutter/material.dart';
 
@@ -147,10 +146,10 @@ class _TodoSyncDemoScreenState extends State<TodoSyncDemoScreen> {
 
         final items = snapshot.data ?? [];
 
-        // If stream data is empty, load from local database
+        // if stream data is empty, load from local database;
         if (items.isEmpty) {
           return FutureBuilder<List<ISyncable>>(
-            future: LocalDatabaseService().getAllItems(tableName),
+            future: _dependencies.syncController.localDatabase.getAllItems(tableName),
             builder: (context, futureSnapshot) {
               if (futureSnapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
@@ -163,14 +162,12 @@ class _TodoSyncDemoScreenState extends State<TodoSyncDemoScreen> {
               final localItems = futureSnapshot.data ?? [];
               if (localItems.isEmpty) return const NoItemsWidget();
 
-              // Cast items to TodoModel for the UI
               final todoItems = localItems.cast<TodoModel>();
               return SyncedListView(items: todoItems, onUpdate: _updateItem, onDelete: _deleteItem);
             },
           );
         }
 
-        // Cast items to TodoModel for the UI
         final todoItems = items.cast<TodoModel>();
         return SyncedListView(items: todoItems, onUpdate: _updateItem, onDelete: _deleteItem);
       },
@@ -182,7 +179,7 @@ class _TodoSyncDemoScreenState extends State<TodoSyncDemoScreen> {
     final description = _descriptionController.text.trim();
     if (name.isEmpty || description.isEmpty) return;
 
-    return futureSnackbar(
+    return createSnackbarAfterFuture(
       () async {
         final newTodo = TodoModel.create(name: name, description: description);
         await _dependencies.syncController.createItem(newTodo);
@@ -197,7 +194,7 @@ class _TodoSyncDemoScreenState extends State<TodoSyncDemoScreen> {
   }
 
   Future<void> _updateItem(String uuid, String name, String description) async {
-    return futureSnackbar(
+    return createSnackbarAfterFuture(
       () async {
         final existingItem = await _dependencies.syncController.getItem(tableName, uuid);
         if (existingItem is TodoModel) {
@@ -217,7 +214,7 @@ class _TodoSyncDemoScreenState extends State<TodoSyncDemoScreen> {
   }
 
   Future<void> _deleteItem(String uuid) {
-    return futureSnackbar(
+    return createSnackbarAfterFuture(
       _dependencies.syncController.deleteItem(tableName, uuid),
       'Todo deleted successfully',
       'Failed to delete todo',
@@ -225,7 +222,7 @@ class _TodoSyncDemoScreenState extends State<TodoSyncDemoScreen> {
   }
 
   Future<void> _syncPendingItems() {
-    return futureSnackbar(
+    return createSnackbarAfterFuture(
       _dependencies.syncController.syncPendingItems(tableName),
       'Sync completed',
       'Sync failed',
@@ -233,7 +230,7 @@ class _TodoSyncDemoScreenState extends State<TodoSyncDemoScreen> {
   }
 
   Future<void> _fullSyncTable() {
-    return futureSnackbar(
+    return createSnackbarAfterFuture(
       _dependencies.syncController.fullSyncTable(tableName),
       'Full table sync completed',
       'Full table sync failed',
@@ -241,7 +238,7 @@ class _TodoSyncDemoScreenState extends State<TodoSyncDemoScreen> {
   }
 
   Future<void> _fullSyncAllTables() {
-    return futureSnackbar(
+    return createSnackbarAfterFuture(
       _dependencies.syncController.fullSyncAllTables(),
       'Full sync of all tables completed',
       'Full sync failed',
@@ -256,7 +253,11 @@ class _TodoSyncDemoScreenState extends State<TodoSyncDemoScreen> {
     }
   }
 
-  Future<void> futureSnackbar(Future<void> future, String success, String failure) async {
+  Future<void> createSnackbarAfterFuture(
+    Future<void> future,
+    String success,
+    String failure,
+  ) async {
     try {
       await future;
       setState(() => snackbar(success));

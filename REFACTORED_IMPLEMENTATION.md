@@ -20,8 +20,8 @@ SWAN Sync - Synchronization with async negotiation.
    - `ApiService` - Makes server requests and manages responses
    - `LocalDatabaseService` - ISyncable-aware storage, monitors fallback system
    - `SyncController` - Orchestrates sync operations and FCM handling
-   - `CommunicationsManager` - Manages all commmunications with server
-   - `FallbackManager` - Manages fallback communication logic and
+   - `Communications` - Manages all commmunications with server
+   - `Fallback` - Manages fallback communication logic and
 
 
 ## Key Features

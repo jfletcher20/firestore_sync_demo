@@ -1,14 +1,11 @@
 /// Interface that all syncable models must implement
 /// Provides dynamic endpoint configuration and data transformation
 abstract class ISyncable {
-  /// Server-side entry ID (-1 means needs sync, null means not yet created)
+  /// Server-side entry ID (-1 means needs sync)
   int get oid;
 
   /// Client-side UUID (always required)
   String get uuid;
-
-  /// Table name for this model type (used for Hive box and server identification)
-  String get tableName;
 
   /// Created timestamp
   DateTime get createdAt;
@@ -22,7 +19,9 @@ abstract class ISyncable {
   /// Whether this item is marked for deletion locally
   bool get isDeleted;
 
-  // API Endpoint definitions - each model defines its own routes
+  // API Sync Endpoint definitions - each model defines its own routes
+  /// Table name for this model type (used for Hive box and server identification)
+  String get tableName;
 
   /// GET /api/endpoint - get all items of this type
   String get getAllEndpoint;

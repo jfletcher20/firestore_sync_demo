@@ -1,6 +1,6 @@
 import 'package:swan_sync/communications/services/local_database_service.dart';
 import 'package:swan_sync/communications/services/sync_controller.dart';
-import 'package:swan_sync/communications/managers/communications_manager.dart';
+import 'package:swan_sync/communications/static/communications.dart';
 import 'package:swan_sync/data/i_syncable.dart';
 
 import 'dart:developer' as developer;
@@ -44,7 +44,7 @@ class ApiService {
     try {
       developer.log('Fetching all items for table: ${prototype.tableName}', name: 'ApiService');
 
-      final response = await CommunicationsManager.handleRequest(
+      final response = await Communications.handleRequest(
         prototype,
         null,
         "<getAll has no UUID>",
@@ -92,7 +92,7 @@ class ApiService {
         name: 'ApiService',
       );
 
-      final response = await CommunicationsManager.handleRequest(
+      final response = await Communications.handleRequest(
         prototype,
         null,
         "<getting by ID has no UUID>",
@@ -132,7 +132,7 @@ class ApiService {
     try {
       developer.log('Creating item: ${data.uuid} for table: ${data.tableName}', name: 'ApiService');
 
-      final response = await CommunicationsManager.handleRequest(
+      final response = await Communications.handleRequest(
         data,
         data,
         data.uuid,
@@ -169,7 +169,7 @@ class ApiService {
     try {
       developer.log('Updating item: $id for table: ${data.tableName}', name: 'ApiService');
 
-      final response = await CommunicationsManager.handleRequest(
+      final response = await Communications.handleRequest(
         data,
         data,
         data.uuid,
@@ -213,7 +213,7 @@ class ApiService {
           .getItemById(prototype.tableName, id)
           .then((item) => item?.uuid ?? 'unknown');
 
-      final response = await CommunicationsManager.handleRequest(
+      final response = await Communications.handleRequest(
         prototype,
         null,
         uuid,
@@ -238,10 +238,10 @@ class ApiService {
   /// Check if the server is reachable for any registered type
   Future<bool> isServerReachable() async {
     if (_registeredTypes.isEmpty) return false;
-
     try {
       final prototype = _registeredTypes.first;
-      final response = await CommunicationsManager.handleRequest(
+      // not ideal to use the getall endpoint, in future could implement a lightweight ping endpoint
+      final response = await Communications.handleRequest(
         prototype,
         null,
         "<server reachability check has no UUID>",

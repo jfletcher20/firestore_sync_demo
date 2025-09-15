@@ -119,7 +119,7 @@ class TodoModel extends HiveObject implements ISyncable {
       description: serverData['description'] ?? '',
       createdAt: DateTime.tryParse(serverData['createdAt'] ?? '') ?? DateTime.now().toUtc(),
       updatedAt: DateTime.tryParse(serverData['updatedAt'] ?? '') ?? DateTime.now().toUtc(),
-      isDeleted: serverData['isDeleted'] ?? false,
+      isDeleted: false,
     );
   }
 

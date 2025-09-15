@@ -6,12 +6,9 @@ part 'data_message_response.g.dart';
 /// Contains minimal data needed to identify and process sync messages
 @JsonSerializable()
 class DataMessageResponse {
-  /// Server-side entry ID (can be null for new items)
+  /// Server-side entry ID (online ID; OID)
   @JsonKey(name: 'id')
   final int? id;
-
-  /// Alternative name for server ID (entryId/oid)
-  final int? entryId;
 
   /// Client-side UUID
   final String uuid;
@@ -22,13 +19,7 @@ class DataMessageResponse {
   /// Whether this is a delete operation
   final bool? delete;
 
-  DataMessageResponse({
-    this.id,
-    this.entryId,
-    required this.uuid,
-    required this.tableName,
-    this.delete,
-  });
+  DataMessageResponse({this.id, required this.uuid, required this.tableName, this.delete});
 
   /// Factory constructor from JSON
   factory DataMessageResponse.fromJson(Map<String, dynamic> json) =>
@@ -40,23 +31,22 @@ class DataMessageResponse {
   /// Create from FCM data payload
   factory DataMessageResponse.fromFcmPayload(Map<String, dynamic> payload) {
     return DataMessageResponse(
-      id: int.tryParse(payload['id']?.toString() ?? ''),
-      entryId: int.tryParse(payload['entryId']?.toString() ?? ''),
+      id: int.tryParse((payload['id'] ?? payload['entryId'])?.toString() ?? ''),
       uuid: payload['uuid'] ?? '',
       tableName: payload['tableName'] ?? '',
       delete: payload['delete'] == 'true' || payload['delete'] == true,
     );
   }
 
-  /// Get the effective ID (prioritize entryId over id)
-  int? get effectiveId => entryId ?? id;
+  /// Get the effective ID on the server
+  int? get effectiveId => id;
 
   /// Check if this is a delete operation
   bool get isDelete => delete == true;
 
   @override
   String toString() {
-    return 'DataMessageResponse{id: $id, entryId: $entryId, uuid: $uuid, tableName: $tableName, delete: $delete}';
+    return 'DataMessageResponse{id: $id, uuid: $uuid, tableName: $tableName, delete: $delete}';
   }
 
   @override
@@ -65,12 +55,10 @@ class DataMessageResponse {
       other is DataMessageResponse &&
           runtimeType == other.runtimeType &&
           id == other.id &&
-          entryId == other.entryId &&
           uuid == other.uuid &&
           tableName == other.tableName &&
           delete == other.delete;
 
   @override
-  int get hashCode =>
-      id.hashCode ^ entryId.hashCode ^ uuid.hashCode ^ tableName.hashCode ^ delete.hashCode;
+  int get hashCode => id.hashCode ^ uuid.hashCode ^ tableName.hashCode ^ delete.hashCode;
 }

@@ -1,3 +1,4 @@
+import 'package:swan_sync/data/models/todo_model.dart';
 import 'package:swan_sync/presentation/widgets/sync_init_failure_widget.dart';
 import 'package:swan_sync/presentation/widgets/sync_init_loading_widget.dart';
 import 'package:swan_sync/presentation/screens/todo_sync_demo_screen.dart';
@@ -26,7 +27,12 @@ class _AppInitializerState extends State<AppInitializer> {
       await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
     }
 
-    await AppDependencies().initialize();
+    // <auth here>
+
+    await AppDependencies().initialize(
+      adapters: [TodoModelAdapter()],
+      prototypes: [TodoModel.prototype()],
+    );
   }
 
   @override

@@ -1,10 +1,10 @@
-import 'package:swan_sync/presentation/widgets/server_reachable_widget_refactored.dart';
-import 'package:swan_sync/presentation/widgets/snapshot_error_widget.dart';
-import 'package:swan_sync/presentation/widgets/synced_list_view.dart';
-import 'package:swan_sync/presentation/widgets/no_items_widget.dart';
-import 'package:swan_sync/communications/core/SWAN_sync.dart';
-import 'package:swan_sync/example-data/models/todo_model.dart';
 import 'package:swan_sync/data/i_syncable.dart';
+import 'package:swan_sync/swan_sync.dart';
+import 'package:swan_sync_demo/presentation/widgets/server_reachable_widget_refactored.dart';
+import 'package:swan_sync_demo/presentation/widgets/snapshot_error_widget.dart';
+import 'package:swan_sync_demo/presentation/widgets/synced_list_view.dart';
+import 'package:swan_sync_demo/presentation/widgets/no_items_widget.dart';
+import 'package:swan_sync_demo/example-data/models/todo_model.dart';
 
 import 'package:flutter/material.dart';
 

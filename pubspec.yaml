@@ -1,4 +1,4 @@
-name: swan_sync
+name: swan_sync_demo
 description: "SWAN Sync - Seamless data synchronization with FCM and Hive."
 publish_to: 'none'
 version: 1.0.0
@@ -20,6 +20,8 @@ dependencies:
   shared_preferences: ^2.3.3
   uuid: ^4.5.1
   json_annotation: ^4.9.0
+  swan_sync:
+    path: DRIVE:/File/Path/To/Module/Root
 
 dev_dependencies:
   flutter_test:

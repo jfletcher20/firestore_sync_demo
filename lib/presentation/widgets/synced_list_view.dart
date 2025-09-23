@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:swan_sync/example-data/models/todo_model.dart';
-import 'package:swan_sync/presentation/widgets/todo_item_card.dart';
+import 'package:swan_sync_demo/example-data/models/todo_model.dart';
+import 'package:swan_sync_demo/presentation/widgets/todo_item_card.dart';
 
 class SyncedListView extends StatelessWidget {
   final List<TodoModel> items;

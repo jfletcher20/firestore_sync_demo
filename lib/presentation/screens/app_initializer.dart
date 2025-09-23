@@ -1,11 +1,12 @@
-import 'package:swan_sync/example-data/models/todo_model.dart';
-import 'package:swan_sync/presentation/widgets/sync_init_failure_widget.dart';
-import 'package:swan_sync/presentation/widgets/sync_init_loading_widget.dart';
-import 'package:swan_sync/presentation/screens/todo_sync_demo_screen.dart';
-import 'package:swan_sync/communications/core/SWAN_sync.dart';
-import 'package:swan_sync/firebase_options.dart';
+import 'package:swan_sync_demo/presentation/widgets/sync_init_failure_widget.dart';
+import 'package:swan_sync_demo/presentation/widgets/sync_init_loading_widget.dart';
+import 'package:swan_sync_demo/presentation/screens/todo_sync_demo_screen.dart';
+import 'package:swan_sync_demo/example-data/models/todo_model.dart';
+import 'package:swan_sync_demo/firebase_options.dart';
 
 import 'package:firebase_core/firebase_core.dart';
+
+import 'package:swan_sync/swan_sync.dart';
 
 import 'package:flutter/material.dart';
 

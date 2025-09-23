@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:swan_sync/example-data/models/todo_model.dart';
+import 'package:swan_sync_demo/example-data/models/todo_model.dart';
 
 class TodoItemCard extends StatefulWidget {
   final TodoModel item;

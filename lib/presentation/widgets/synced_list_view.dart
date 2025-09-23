@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:swan_sync/data/models/todo_model.dart';
+import 'package:swan_sync/example-data/models/todo_model.dart';
 import 'package:swan_sync/presentation/widgets/todo_item_card.dart';
 
 class SyncedListView extends StatelessWidget {
@@ -16,9 +16,7 @@ class SyncedListView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final sortedItems = List<TodoModel>.from(items);
-    sortedItems.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
-
+    final sortedItems = [...items]..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: sortedItems.length,

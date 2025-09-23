@@ -1,5 +1,7 @@
-import 'package:swan_sync/communications/static/communications.dart';
-import 'package:swan_sync/communications/static/fallback.dart';
+import 'package:swan_sync/communications/util/fallback/fallback.dart';
+import 'package:swan_sync/communications/core/SWAN_sync.dart';
+import 'package:swan_sync/communications/util/communications.dart';
+import 'package:swan_sync/communications/core/request_type.dart';
 import 'package:swan_sync/data/i_syncable.dart';
 
 import 'package:hive_flutter/hive_flutter.dart';
@@ -8,39 +10,17 @@ import 'dart:developer' as developer;
 import 'dart:convert';
 import 'dart:async';
 
-class LocalDatabaseService {
-  static final LocalDatabaseService _instance = LocalDatabaseService._internal();
-  factory LocalDatabaseService() => _instance;
-  LocalDatabaseService._internal();
+class LocalDatabase {
+  static final LocalDatabase _instance = LocalDatabase._internal();
+  factory LocalDatabase() => _instance;
+  LocalDatabase._internal();
 
   /// List of registered ISyncable types for dynamic model creation
-  // ignore: prefer_final_fields
-  List<ISyncable> _registeredTypes = [];
-  List<ISyncable> get registeredTypes => List.unmodifiable(_registeredTypes);
-
-  /// Initialize Hive and register adapters
-  Future<void> initialize() async {
-    developer.log('Initializing LocalDatabaseService', name: 'LocalDatabaseService');
-
-    await Hive.initFlutter();
-
-    developer.log('LocalDatabaseService initialized', name: 'LocalDatabaseService');
-  }
-
-  /// Register a syncable type for dynamic model creation
-  void registerSyncableType(ISyncable prototype) {
-    _registeredTypes.removeWhere((type) => type.tableName == prototype.tableName);
-    _registeredTypes.add(prototype);
-    developer.log('Registered syncable type: ${prototype.tableName}', name: 'LocalDatabaseService');
-  }
+  Future<LocalDatabase> initialize([String? subDir]) => Hive.initFlutter(subDir).then((_) => this);
 
   /// Find the correct ISyncable prototype by table name
   ISyncable? _findPrototypeByTableName(String tableName) {
-    try {
-      return _registeredTypes.firstWhere((type) => type.tableName == tableName);
-    } catch (e) {
-      return null;
-    }
+    return SwanSync.prototypeFor(tableName);
   }
 
   /// Get or create a box for a specific table
@@ -56,15 +36,15 @@ class LocalDatabaseService {
     try {
       developer.log(
         'Storing item: ${item.uuid} in table: ${item.tableName}',
-        name: 'LocalDatabaseService',
+        name: 'LocalDatabase',
       );
 
       final box = await _getBox(item.tableName);
       await box.put(item.uuid, item.toHiveData());
 
-      developer.log('Successfully stored item: ${item.uuid}', name: 'LocalDatabaseService');
+      developer.log('Successfully stored item: ${item.uuid}', name: 'LocalDatabase');
     } catch (e) {
-      developer.log('Error storing item: $e', name: 'LocalDatabaseService');
+      developer.log('Error storing item: $e', name: 'LocalDatabase');
       rethrow;
     }
   }
@@ -79,14 +59,14 @@ class LocalDatabaseService {
 
       final prototype = _findPrototypeByTableName(tableName);
       if (prototype == null) {
-        developer.log('No prototype found for table: $tableName', name: 'LocalDatabaseService');
+        developer.log('No prototype found for table: $tableName', name: 'LocalDatabase');
         return null;
       }
 
       final hiveData = Map<String, dynamic>.from(data);
       return prototype.fromHiveData(hiveData);
     } catch (e) {
-      developer.log('Error getting item: $e', name: 'LocalDatabaseService');
+      developer.log('Error getting item: $e', name: 'LocalDatabase');
       return null;
     }
   }
@@ -100,14 +80,14 @@ class LocalDatabaseService {
 
       final prototype = _findPrototypeByTableName(tableName);
       if (prototype == null) {
-        developer.log('No prototype found for table: $tableName', name: 'LocalDatabaseService');
+        developer.log('No prototype found for table: $tableName', name: 'LocalDatabase');
         return null;
       }
 
       final hiveData = Map<String, dynamic>.from(data);
       return prototype.fromHiveData(hiveData);
     } catch (e) {
-      developer.log('Error getting item: $e', name: 'LocalDatabaseService');
+      developer.log('Error getting item: $e', name: 'LocalDatabase');
       return null;
     }
   }
@@ -119,7 +99,7 @@ class LocalDatabaseService {
       final prototype = _findPrototypeByTableName(tableName);
 
       if (prototype == null) {
-        developer.log('No prototype found for table: $tableName', name: 'LocalDatabaseService');
+        developer.log('No prototype found for table: $tableName', name: 'LocalDatabase');
         return [];
       }
 
@@ -131,13 +111,13 @@ class LocalDatabaseService {
           if (!includeDeleted && item.isDeleted) continue;
           items.add(item);
         } catch (e) {
-          developer.log('Error parsing item from Hive data: $e', name: 'LocalDatabaseService');
+          developer.log('Error parsing item from Hive data: $e', name: 'LocalDatabase');
         }
       }
 
       return items;
     } catch (e) {
-      developer.log('Error getting all items: $e', name: 'LocalDatabaseService');
+      developer.log('Error getting all items: $e', name: 'LocalDatabase');
       return [];
     }
   }
@@ -148,7 +128,7 @@ class LocalDatabaseService {
       final allItems = await getAllItems(tableName);
       return allItems.where((item) => item.needsSync).toList();
     } catch (e) {
-      developer.log('Error getting items needing sync: $e', name: 'LocalDatabaseService');
+      developer.log('Error getting items needing sync: $e', name: 'LocalDatabase');
       return [];
     }
   }
@@ -156,12 +136,12 @@ class LocalDatabaseService {
   /// Delete an item (hard delete)
   Future<void> deleteItem(String tableName, String uuid) async {
     try {
-      developer.log('Deleting item: $uuid from table: $tableName', name: 'LocalDatabaseService');
+      developer.log('Deleting item: $uuid from table: $tableName', name: 'LocalDatabase');
       final box = await _getBox(tableName);
       await box.delete(uuid);
-      developer.log('Successfully deleted item: $uuid', name: 'LocalDatabaseService');
+      developer.log('Successfully deleted item: $uuid', name: 'LocalDatabase');
     } catch (e) {
-      developer.log('Error deleting item: $e', name: 'LocalDatabaseService');
+      developer.log('Error deleting item: $e', name: 'LocalDatabase');
       rethrow;
     }
   }
@@ -173,7 +153,7 @@ class LocalDatabaseService {
     try {
       developer.log(
         'Handling getAll sync for table: $tableName with ${serverItems.length} server items',
-        name: 'LocalDatabaseService',
+        name: 'LocalDatabase',
       );
 
       final localItems = await getAllItems(tableName, includeDeleted: true);
@@ -189,7 +169,7 @@ class LocalDatabaseService {
           try {
             final prototype = _findPrototypeByTableName(tableName);
             if (prototype != null) {
-              await Communications.handleRequest(
+              await Communications.request(
                 prototype,
                 null,
                 localItem.uuid,
@@ -200,13 +180,13 @@ class LocalDatabaseService {
               serverDeletedCount++;
               developer.log(
                 'Sent delete request to server for locally deleted item ${localItem.uuid}',
-                name: 'LocalDatabaseService',
+                name: 'LocalDatabase',
               );
             }
           } catch (e) {
             developer.log(
               'Failed to delete item ${localItem.uuid} on server: $e',
-              name: 'LocalDatabaseService',
+              name: 'LocalDatabase',
             );
           }
         }
@@ -218,7 +198,7 @@ class LocalDatabaseService {
           deletedCount++;
           developer.log(
             'Deleted local item ${localItem.uuid} - not found on server',
-            name: 'LocalDatabaseService',
+            name: 'LocalDatabase',
           );
         }
       }
@@ -242,7 +222,7 @@ class LocalDatabaseService {
 
       developer.log(
         'GetAll sync completed: $addedCount added, $updatedCount updated, $deletedCount deleted, $serverDeletedCount sent to server for deletion',
-        name: 'LocalDatabaseService',
+        name: 'LocalDatabase',
       );
 
       if (deletedCount > 0 || updatedCount > 0 || addedCount > 0 || serverDeletedCount > 0) {
@@ -251,7 +231,7 @@ class LocalDatabaseService {
         return SyncConflictResult.noChanges;
       }
     } catch (e) {
-      developer.log('Error handling getAll sync: $e', name: 'LocalDatabaseService');
+      developer.log('Error handling getAll sync: $e', name: 'LocalDatabase');
       return SyncConflictResult.error;
     }
   }
@@ -259,27 +239,27 @@ class LocalDatabaseService {
   /// Handle incoming data from FCM or API with conflict resolution
   Future<SyncConflictResult> handleIncomingData(ISyncable incomingData) async {
     try {
-      developer.log('Handling incoming data: ${incomingData.uuid}', name: 'LocalDatabaseService');
+      developer.log('Handling incoming data: ${incomingData.uuid}', name: 'LocalDatabase');
 
       final existingItem = await getItem(incomingData.tableName, incomingData.uuid);
 
       if (existingItem == null) {
         await storeItem(incomingData);
 
-        developer.log('Stored new item: ${incomingData.uuid}', name: 'LocalDatabaseService');
+        developer.log('Stored new item: ${incomingData.uuid}', name: 'LocalDatabase');
         return SyncConflictResult.stored;
       }
 
       return await _resolveConflict(existingItem, incomingData);
     } catch (e) {
-      developer.log('Error handling incoming data: $e', name: 'LocalDatabaseService');
+      developer.log('Error handling incoming data: $e', name: 'LocalDatabase');
       return SyncConflictResult.error;
     }
   }
 
   /// Resolve conflicts between local and incoming data
   Future<SyncConflictResult> _resolveConflict(ISyncable localItem, ISyncable incomingData) async {
-    developer.log('Resolving conflict for: ${localItem.uuid}', name: 'LocalDatabaseService');
+    developer.log('Resolving conflict for: ${localItem.uuid}', name: 'LocalDatabase');
 
     timestampUpdated() async {
       final updatedItem = localItem.copyWith(
@@ -287,7 +267,7 @@ class LocalDatabaseService {
         updatedAt: incomingData.updatedAt,
       );
       await storeItem(updatedItem);
-      developer.log('Updated timestamps for: ${localItem.uuid}', name: 'LocalDatabaseService');
+      developer.log('Updated timestamps for: ${localItem.uuid}', name: 'LocalDatabase');
       return SyncConflictResult.timestampUpdated;
     }
 
@@ -297,7 +277,7 @@ class LocalDatabaseService {
       } else {
         developer.log(
           'Local data is newer, needs server update: ${localItem.uuid}',
-          name: 'LocalDatabaseService',
+          name: 'LocalDatabase',
         );
         return SyncConflictResult.needsServerUpdate;
       }
@@ -306,22 +286,19 @@ class LocalDatabaseService {
         return timestampUpdated();
       } else {
         await storeItem(incomingData);
-        developer.log(
-          'Stored newer incoming data for: ${localItem.uuid}',
-          name: 'LocalDatabaseService',
-        );
+        developer.log('Stored newer incoming data for: ${localItem.uuid}', name: 'LocalDatabase');
         return SyncConflictResult.stored;
       }
     } else {
       // do nothing, timestamps are identical
       if (localItem.hasSameContentAs(incomingData)) {
-        developer.log('No changes needed for: ${localItem.uuid}', name: 'LocalDatabaseService');
+        developer.log('No changes needed for: ${localItem.uuid}', name: 'LocalDatabase');
         return SyncConflictResult.noChanges;
       } else {
         await storeItem(incomingData);
         developer.log(
           'Timestamps identical but content differs, stored incoming data for: ${localItem.uuid}',
-          name: 'LocalDatabaseService',
+          name: 'LocalDatabase',
         );
         return SyncConflictResult.stored;
       }
@@ -371,10 +348,10 @@ class LocalDatabaseService {
   Future<ISyncable?> updateItem(String tableName, String uuid, ISyncable updatedItem) async {
     try {
       await storeItem(updatedItem);
-      developer.log('Updated local item: $uuid', name: 'LocalDatabaseService');
+      developer.log('Updated local item: $uuid', name: 'LocalDatabase');
       return updatedItem;
     } catch (e) {
-      developer.log('Error updating item: $e', name: 'LocalDatabaseService');
+      developer.log('Error updating item: $e', name: 'LocalDatabase');
       rethrow;
     }
   }
@@ -387,13 +364,10 @@ class LocalDatabaseService {
       if (item != null) {
         final syncedItem = item.copyWith(oid: serverOid);
         await storeItem(syncedItem);
-        developer.log(
-          'Marked item as synced: $uuid with oid: $serverOid',
-          name: 'LocalDatabaseService',
-        );
+        developer.log('Marked item as synced: $uuid with oid: $serverOid', name: 'LocalDatabase');
       }
     } catch (e) {
-      developer.log('Error marking item as synced: $e', name: 'LocalDatabaseService');
+      developer.log('Error marking item as synced: $e', name: 'LocalDatabase');
     }
   }
 
@@ -408,14 +382,14 @@ class LocalDatabaseService {
   Future<void> clearTable(String tableName) async {
     try {
       await (await _getBox(tableName)).clear();
-      developer.log('Cleared table: $tableName', name: 'LocalDatabaseService');
+      developer.log('Cleared table: $tableName', name: 'LocalDatabase');
     } catch (e) {
-      developer.log('Error clearing table: $e', name: 'LocalDatabaseService');
+      developer.log('Error clearing table: $e', name: 'LocalDatabase');
     }
   }
 
   /// Get all registered table names
-  List<String> getRegisteredTableNames() => _registeredTypes.map((t) => t.tableName).toList();
+  List<String> getRegisteredTableNames() => SwanSync.tableNames;
 
   /// Close all boxes and cleanup
   Future<void> dispose() async => await Hive.close();

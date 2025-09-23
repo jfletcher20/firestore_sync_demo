@@ -2,8 +2,8 @@ import 'package:swan_sync/presentation/widgets/server_reachable_widget_refactore
 import 'package:swan_sync/presentation/widgets/snapshot_error_widget.dart';
 import 'package:swan_sync/presentation/widgets/synced_list_view.dart';
 import 'package:swan_sync/presentation/widgets/no_items_widget.dart';
-import 'package:swan_sync/communications/core/app_dependencies.dart';
-import 'package:swan_sync/data/models/todo_model.dart';
+import 'package:swan_sync/communications/core/SWAN_sync.dart';
+import 'package:swan_sync/example-data/models/todo_model.dart';
 import 'package:swan_sync/data/i_syncable.dart';
 
 import 'package:flutter/material.dart';
@@ -16,7 +16,6 @@ class TodoSyncDemoScreen extends StatefulWidget {
 }
 
 class _TodoSyncDemoScreenState extends State<TodoSyncDemoScreen> {
-  final AppDependencies _dependencies = AppDependencies();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
   static const String tableName = 'todos';
@@ -59,7 +58,7 @@ class _TodoSyncDemoScreenState extends State<TodoSyncDemoScreen> {
             const ServerReachableWidget(),
             const SizedBox(height: 8),
             FutureBuilder<List<ISyncable>>(
-              future: _dependencies.syncController.getItems(tableName),
+              future: SwanSync.syncController.getItems(tableName),
               builder: (context, snapshot) {
                 final items = snapshot.data ?? [];
                 final pendingItems = items.where((item) => item.needsSync).length;
@@ -83,7 +82,7 @@ class _TodoSyncDemoScreenState extends State<TodoSyncDemoScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Registered Tables: ${_dependencies.syncController.getRegisteredTableNames().join(', ')}',
+              'Registered Tables: ${SwanSync.syncController.getRegisteredTableNames().join(', ')}',
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ],
@@ -138,7 +137,7 @@ class _TodoSyncDemoScreenState extends State<TodoSyncDemoScreen> {
 
   Widget _buildItemsList() {
     return StreamBuilder<List<ISyncable>>(
-      stream: _dependencies.syncController.watchTable(tableName),
+      stream: SwanSync.syncController.watchTable(tableName),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
           return SnapshotErrorWidget(snapshot: snapshot, retry: () => setState(() {}));
@@ -149,7 +148,7 @@ class _TodoSyncDemoScreenState extends State<TodoSyncDemoScreen> {
         // if stream data is empty, load from local database;
         if (items.isEmpty) {
           return FutureBuilder<List<ISyncable>>(
-            future: _dependencies.syncController.localDatabase.getAllItems(tableName),
+            future: SwanSync.database.getAllItems(tableName),
             builder: (context, futureSnapshot) {
               if (futureSnapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
@@ -182,7 +181,7 @@ class _TodoSyncDemoScreenState extends State<TodoSyncDemoScreen> {
     return createSnackbarAfterFuture(
       () async {
         final newTodo = TodoModel.create(name: name, description: description);
-        await _dependencies.syncController.createItem(newTodo);
+        await SwanSync.syncController.createItem(newTodo);
         setState(() {
           _nameController.clear();
           _descriptionController.clear();
@@ -196,7 +195,7 @@ class _TodoSyncDemoScreenState extends State<TodoSyncDemoScreen> {
   Future<void> _updateItem(String uuid, String name, String description) async {
     return createSnackbarAfterFuture(
       () async {
-        final existingItem = await _dependencies.syncController.getItem(tableName, uuid);
+        final existingItem = await SwanSync.syncController.getItem(tableName, uuid);
         if (existingItem is TodoModel) {
           final updatedTodo =
               existingItem.copyWith(
@@ -205,7 +204,7 @@ class _TodoSyncDemoScreenState extends State<TodoSyncDemoScreen> {
                     updatedAt: DateTime.now().toUtc(),
                   )
                   as TodoModel;
-          await _dependencies.syncController.updateItem(updatedTodo);
+          await SwanSync.syncController.updateItem(updatedTodo);
         }
       }(),
       'Todo updated successfully',
@@ -215,7 +214,7 @@ class _TodoSyncDemoScreenState extends State<TodoSyncDemoScreen> {
 
   Future<void> _deleteItem(String uuid) {
     return createSnackbarAfterFuture(
-      _dependencies.syncController.deleteItem(tableName, uuid),
+      SwanSync.syncController.deleteItem(tableName, uuid),
       'Todo deleted successfully',
       'Failed to delete todo',
     );
@@ -223,7 +222,7 @@ class _TodoSyncDemoScreenState extends State<TodoSyncDemoScreen> {
 
   Future<void> _syncPendingItems() {
     return createSnackbarAfterFuture(
-      _dependencies.syncController.syncPendingItems(tableName),
+      SwanSync.syncController.syncPendingItems(tableName),
       'Sync completed',
       'Sync failed',
     );
@@ -231,7 +230,7 @@ class _TodoSyncDemoScreenState extends State<TodoSyncDemoScreen> {
 
   Future<void> _fullSyncTable() {
     return createSnackbarAfterFuture(
-      _dependencies.syncController.fullSyncTable(tableName),
+      SwanSync.syncController.fullSyncTable(tableName),
       'Full table sync completed',
       'Full table sync failed',
     );
@@ -239,7 +238,7 @@ class _TodoSyncDemoScreenState extends State<TodoSyncDemoScreen> {
 
   Future<void> _fullSyncAllTables() {
     return createSnackbarAfterFuture(
-      _dependencies.syncController.fullSyncAllTables(),
+      SwanSync.syncController.fullSyncAllTables(),
       'Full sync of all tables completed',
       'Full sync failed',
     );

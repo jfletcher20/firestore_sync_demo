@@ -1,8 +1,8 @@
-import 'package:swan_sync/data/models/todo_model.dart';
+import 'package:swan_sync/example-data/models/todo_model.dart';
 import 'package:swan_sync/presentation/widgets/sync_init_failure_widget.dart';
 import 'package:swan_sync/presentation/widgets/sync_init_loading_widget.dart';
 import 'package:swan_sync/presentation/screens/todo_sync_demo_screen.dart';
-import 'package:swan_sync/communications/core/app_dependencies.dart';
+import 'package:swan_sync/communications/core/SWAN_sync.dart';
 import 'package:swan_sync/firebase_options.dart';
 
 import 'package:firebase_core/firebase_core.dart';
@@ -29,9 +29,9 @@ class _AppInitializerState extends State<AppInitializer> {
 
     // <auth here>
 
-    await AppDependencies().initialize(
-      adapters: [TodoModelAdapter()],
-      prototypes: [TodoModel.prototype()],
+    await SwanSync.initialize(
+      // register adapter-prototype pairs here
+      types: [(adapter: TodoModelAdapter(), prototype: TodoModel.prototype())],
     );
   }
 
@@ -60,7 +60,7 @@ class _AppInitializerState extends State<AppInitializer> {
 
   @override
   void dispose() {
-    AppDependencies().dispose();
+    SwanSync.dispose();
     super.dispose();
   }
 }

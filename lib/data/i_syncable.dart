@@ -38,8 +38,6 @@ abstract class ISyncable {
   /// DELETE /api/endpoint/{id} - delete item
   String get deleteEndpoint;
 
-  // Data transformation methods
-
   /// Convert model to server-compatible JSON format
   Map<String, dynamic> toServerData();
 
@@ -56,9 +54,7 @@ abstract class ISyncable {
   });
 
   /// Check if this item is newer than another based on updatedAt
-  bool isNewerThan(ISyncable other) {
-    return updatedAt.isAfter(other.updatedAt);
-  }
+  bool isNewerThan(ISyncable other) => updatedAt.isAfter(other.updatedAt);
 
   /// Check if this item has the same content as another (ignoring timestamps and oid)
   bool hasSameContentAs(ISyncable other);

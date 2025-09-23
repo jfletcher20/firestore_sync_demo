@@ -1,6 +1,8 @@
 // ignore_for_file: constant_identifier_names
 
-import 'package:swan_sync/communications/static/fallback.dart';
+import 'package:swan_sync/communications/util/fallback/fallback.dart';
+import 'package:swan_sync/communications/core/request_type.dart';
+import 'package:swan_sync/communications/core/SWAN_sync.dart';
 import 'package:swan_sync/data/i_syncable.dart';
 
 import 'package:http/http.dart' as http;
@@ -9,8 +11,26 @@ import 'dart:developer' as developer;
 import 'dart:convert';
 import 'dart:async';
 
+_log(String message) => developer.log(message, name: 'Communications');
+
 abstract class Communications {
-  static Future<http.Response> handleRequest(
+  /// Unified request handler for all API interactions
+  ///
+  /// Determines request type based on parameters and routes accordingly.
+  /// If a request fails, it is added to the Fallback queue for retrying later.
+  ///
+  /// If a body is provided, it is assumed to be a POST or PUT request.
+  /// If no body is provided, it is assumed to be a GET or DELETE request.
+  /// If [oid] is null, it is assumed to be a GET_ALL or POST request.
+  /// If [oid] is not null, it is assumed to be a GET/oid, PUT, or DELETE request.
+  /// If [delete] is true, it is assumed to be a DELETE request.
+  ///
+  ///
+  /// By default, empty [headers] will use Api's [defaultHeaders] reference.
+  /// The [defaultHeaders] can be
+  /// If you want to override with custom headers, provide them here.
+  /// If you don't want any headers, provide an empty map ```{}```
+  static Future<http.Response> request(
     ISyncable prototype,
     ISyncable? data,
     String uuid, {
@@ -19,13 +39,10 @@ abstract class Communications {
     bool delete = false,
     bool storeFallback = true,
   }) async {
+    headers ??= SwanSync.api.defaultHeaders;
     RequestType? type = RequestType.detectType(oid: oid, body: data != null, delete: delete);
     try {
-      developer.log(
-        'Handling request for table: ${prototype.tableName}',
-        name: 'CommunicationsHandler',
-      );
-
+      _log('Handling request for table: ${prototype.tableName}');
       http.Response response = switch (type) {
         RequestType.GET_ALL => await http
             .get(Uri.parse(prototype.getAllEndpoint), headers: headers)
@@ -50,50 +67,22 @@ abstract class Communications {
         RequestType.DELETE => await http
             .delete(Uri.parse('${prototype.deleteEndpoint}/$oid'), headers: headers)
             .timeout(const Duration(seconds: 10)),
-        null =>
-          throw Exception('Could not determine request type for table: ${prototype.tableName}'),
+        null => throw Exception('Could not determine request type for T:${prototype.tableName}'),
       };
 
       if ((response.statusCode >= 200 && response.statusCode < 300) || response.statusCode == 404) {
         return response;
       } else {
-        developer.log(
-          'Request failed for table: ${prototype.tableName}, status code: ${response.statusCode}, body: ${response.body}',
-          name: 'CommunicationsHandler',
-        );
+        _log('Failed for T:${prototype.tableName} with ${response.statusCode}: ${response.body}');
         if (storeFallback) Fallback.addToQueue(type!, prototype.tableName, uuid, oid, data);
         return response;
       }
     } catch (e) {
       if (storeFallback) {
-        developer.log(
-          'Error handling request: $e, sending to fallback',
-          name: 'CommunicationsHandler',
-        );
+        _log('Error handling request: $e, sending to fallback');
         Fallback.addToQueue(type!, prototype.tableName, uuid, oid, data);
       }
       return http.Response('Error: $e', 500);
     }
-  }
-}
-
-enum RequestType {
-  GET,
-  GET_ALL,
-  POST,
-  PUT,
-  DELETE;
-
-  static RequestType? detectType({int? oid, required bool body, bool delete = false}) {
-    if (body && oid == null) {
-      return RequestType.POST;
-    } else if (body && oid != null) {
-      return RequestType.PUT;
-    } else if (!body && oid != null) {
-      return delete ? RequestType.DELETE : RequestType.GET;
-    } else if (!body && oid == null) {
-      return RequestType.GET_ALL;
-    }
-    return null;
   }
 }

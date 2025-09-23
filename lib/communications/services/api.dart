@@ -1,54 +1,73 @@
-import 'package:swan_sync/communications/services/local_database_service.dart';
-import 'package:swan_sync/communications/services/sync_controller.dart';
-import 'package:swan_sync/communications/static/communications.dart';
+import 'package:swan_sync/communications/util/api_exceptions.dart';
+import 'package:swan_sync/communications/util/communications.dart';
+import 'package:swan_sync/communications/core/SWAN_sync.dart';
 import 'package:swan_sync/data/i_syncable.dart';
+
+import 'package:firebase_messaging/firebase_messaging.dart';
+
+import 'package:flutter/foundation.dart';
 
 import 'dart:developer' as developer;
 import 'dart:convert';
 import 'dart:async';
 
-class ApiService {
-  static final ApiService _instance = ApiService._internal();
-  factory ApiService() => _instance;
-  ApiService._internal();
+_log(String message) => developer.log(message);
+
+class Api {
+  static final Api _instance = Api._internal();
+  factory Api() => _instance;
+  Api._internal();
 
   static const Duration timeout = Duration(seconds: 30);
+
+  /// Can be overridden by setting the headers property on the Api instance.
+  /// If not set, uses defaultHeaders.
+  Map<String, String> get configuredHeaders =>
+      _configuredHeaders.isNotEmpty ? _configuredHeaders : defaultHeaders;
+
+  /// Default headers for all API requests
+  /// Content-Type and Accept are set to application/json
+  /// Device-ID is set to the device token from SyncController or 'anonymous swan v3' if unavailable
+  ///
+  /// Combines default headers with any additional headers provided, with additional headers taking precedence
+  Map<String, String> get defaultHeaders => {..._defaultHeaders, ..._configuredHeaders};
 
   Map<String, String> get _defaultHeaders => {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
-    'device-id': SyncController.deviceToken ?? 'anonymous swan v3',
+    'device-id': deviceToken ?? 'anonymous swan',
   };
 
-  /// List of registered ISyncable types for dynamic model creation
-  final List<ISyncable> _registeredTypes = [];
+  Map<String, String> _configuredHeaders = {};
+  set headers(Map<String, String> headers) {
+    _configuredHeaders = headers;
+  }
 
-  /// Register a syncable type for dynamic model creation
-  void registerSyncableType(ISyncable prototype) {
-    _registeredTypes.removeWhere((type) => type.tableName == prototype.tableName);
-    _registeredTypes.add(prototype);
-    developer.log('Registered syncable type: ${prototype.tableName}', name: 'ApiService');
+  static String? deviceToken = 'anonymous swan';
+
+  Future<Api> initialize() async {
+    // TODO: requestpermission? shouldn't have to since we're dealing with data messages
+    if (defaultTargetPlatform == TargetPlatform.iOS)
+      deviceToken = await FirebaseMessaging.instance.getAPNSToken();
+    else
+      deviceToken = await FirebaseMessaging.instance.getToken();
+    _log('FCM Device Token: $deviceToken');
+    return this;
   }
 
   /// Find the correct ISyncable prototype by table name
-  ISyncable? _findPrototypeByTableName(String tableName) {
-    try {
-      return _registeredTypes.firstWhere((type) => type.tableName == tableName);
-    } catch (e) {
-      return null;
-    }
-  }
+  ISyncable? _findPrototypeByTableName(String tableName) => SwanSync.prototypeFor(tableName);
 
   /// Get all items for a specific syncable type
   Future<List<ISyncable>> getAll(ISyncable prototype, {bool storeFallback = true}) async {
     try {
-      developer.log('Fetching all items for table: ${prototype.tableName}', name: 'ApiService');
+      _log('Fetching all items for table: ${prototype.tableName}');
 
-      final response = await Communications.handleRequest(
+      final response = await Communications.request(
         prototype,
         null,
         "<getAll has no UUID>",
-        headers: _defaultHeaders,
+        headers: defaultHeaders,
         storeFallback: storeFallback,
       );
 
@@ -70,16 +89,13 @@ class ApiService {
           items.add(modelPrototype.fromServerData(json));
         }
 
-        developer.log(
-          'Successfully fetched ${items.length} items for ${prototype.tableName}',
-          name: 'ApiService',
-        );
+        _log('Successfully fetched ${items.length} items for ${prototype.tableName}');
         return items;
       } else {
         throw ApiException('Failed to fetch data: ${response.statusCode} ${response.body}');
       }
     } catch (e) {
-      developer.log('Error fetching all data for ${prototype.tableName}: $e', name: 'ApiService');
+      _log('Error fetching all data for ${prototype.tableName}: $e');
       rethrow;
     }
   }
@@ -87,17 +103,14 @@ class ApiService {
   /// Get item by ID for a specific syncable type
   Future<ISyncable> getById(ISyncable prototype, int id) async {
     try {
-      developer.log(
-        'Fetching item by ID: $id for table: ${prototype.tableName}',
-        name: 'ApiService',
-      );
+      _log('Fetching item by ID: $id for table: ${prototype.tableName}');
 
-      final response = await Communications.handleRequest(
+      final response = await Communications.request(
         prototype,
         null,
         "<getting by ID has no UUID>",
         oid: id,
-        headers: _defaultHeaders,
+        headers: defaultHeaders,
       );
 
       if (response.statusCode == 200) {
@@ -114,7 +127,7 @@ class ApiService {
         }
 
         final item = modelPrototype.fromServerData(json);
-        developer.log('Successfully fetched item: ${item.uuid}', name: 'ApiService');
+        _log('Successfully fetched item: ${item.uuid}');
         return item;
       } else if (response.statusCode == 404) {
         throw NotFoundException('Item not found: $id');
@@ -122,7 +135,7 @@ class ApiService {
         throw ApiException('Failed to fetch item: ${response.statusCode} ${response.body}');
       }
     } catch (e) {
-      developer.log('Error fetching item by ID: $e', name: 'ApiService');
+      _log('Error fetching item by ID: $e');
       rethrow;
     }
   }
@@ -130,14 +143,9 @@ class ApiService {
   /// Create new item
   Future<ISyncable> create(ISyncable data) async {
     try {
-      developer.log('Creating item: ${data.uuid} for table: ${data.tableName}', name: 'ApiService');
+      _log('Creating item: ${data.uuid} for table: ${data.tableName}');
 
-      final response = await Communications.handleRequest(
-        data,
-        data,
-        data.uuid,
-        headers: _defaultHeaders,
-      );
+      final response = await Communications.request(data, data, data.uuid, headers: defaultHeaders);
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final responseJson = json.decode(response.body);
@@ -153,13 +161,13 @@ class ApiService {
         }
 
         final createdItem = modelPrototype.fromServerData(responseJson);
-        developer.log('Successfully created item: ${createdItem.oid}', name: 'ApiService');
+        _log('Successfully created item: ${createdItem.oid}');
         return createdItem;
       } else {
         throw ApiException('Failed to create item: ${response.statusCode} ${response.body}');
       }
     } catch (e) {
-      developer.log('Error creating item: $e', name: 'ApiService');
+      _log('Error creating item: $e');
       rethrow;
     }
   }
@@ -167,14 +175,14 @@ class ApiService {
   /// Update existing item
   Future<ISyncable> update(ISyncable data, int id) async {
     try {
-      developer.log('Updating item: $id for table: ${data.tableName}', name: 'ApiService');
+      _log('Updating item: $id for table: ${data.tableName}');
 
-      final response = await Communications.handleRequest(
+      final response = await Communications.request(
         data,
         data,
         data.uuid,
         oid: id,
-        headers: _defaultHeaders,
+        headers: defaultHeaders,
       );
 
       if (response.statusCode == 200) {
@@ -191,7 +199,7 @@ class ApiService {
         }
 
         final updatedItem = modelPrototype.fromServerData(responseJson);
-        developer.log('Successfully updated item: ${updatedItem.oid}', name: 'ApiService');
+        _log('Successfully updated item: ${updatedItem.oid}');
         return updatedItem;
       } else if (response.statusCode == 404) {
         throw NotFoundException('Item not found: $id');
@@ -199,7 +207,7 @@ class ApiService {
         throw ApiException('Failed to update item: ${response.statusCode} ${response.body}');
       }
     } catch (e) {
-      developer.log('Error updating item: $e', name: 'ApiService');
+      _log('Error updating item: $e');
       rethrow;
     }
   }
@@ -207,45 +215,45 @@ class ApiService {
   /// Delete item
   Future<void> delete(ISyncable prototype, int id) async {
     try {
-      developer.log('Deleting item: $id for table: ${prototype.tableName}', name: 'ApiService');
+      _log('Deleting item: $id for table: ${prototype.tableName}');
 
-      var uuid = await LocalDatabaseService()
+      var uuid = await SwanSync.database
           .getItemById(prototype.tableName, id)
           .then((item) => item?.uuid ?? 'unknown');
 
-      final response = await Communications.handleRequest(
+      final response = await Communications.request(
         prototype,
         null,
         uuid,
         oid: id,
         delete: true,
-        headers: _defaultHeaders,
+        headers: defaultHeaders,
       );
 
       if (response.statusCode == 200 || response.statusCode == 204) {
-        developer.log('Successfully deleted item: $id', name: 'ApiService');
+        _log('Successfully deleted item: $id');
       } else if (response.statusCode == 404) {
         throw NotFoundException('Item not found: $id');
       } else {
         throw ApiException('Failed to delete item: ${response.statusCode} ${response.body}');
       }
     } catch (e) {
-      developer.log('Error deleting item: $e', name: 'ApiService');
+      _log('Error deleting item: $e');
       rethrow;
     }
   }
 
   /// Check if the server is reachable for any registered type
   Future<bool> isServerReachable() async {
-    if (_registeredTypes.isEmpty) return false;
+    if (SwanSync.registeredTypes.isEmpty) return false;
     try {
-      final prototype = _registeredTypes.first;
+      final prototype = SwanSync.prototypes.first;
       // not ideal to use the getall endpoint, in future could implement a lightweight ping endpoint
-      final response = await Communications.handleRequest(
+      final response = await Communications.request(
         prototype,
         null,
         "<server reachability check has no UUID>",
-        headers: _defaultHeaders,
+        headers: defaultHeaders,
       );
       return response.statusCode < 500;
     } catch (e) {
@@ -253,44 +261,6 @@ class ApiService {
     }
   }
 
-  /// Get all registered table names
-  List<String> getRegisteredTableNames() {
-    return _registeredTypes.map((type) => type.tableName).toList();
-  }
-
   /// Get prototype for a table name
-  ISyncable? getPrototypeForTable(String tableName) {
-    return _findPrototypeByTableName(tableName);
-  }
-}
-
-/// Base API exception
-class ApiException implements Exception {
-  final String message;
-  const ApiException(this.message);
-
-  @override
-  String toString() => 'ApiException: $message';
-}
-
-/// Specific API exceptions
-class NotFoundException extends ApiException {
-  const NotFoundException(super.message);
-
-  @override
-  String toString() => 'NotFoundException: $message';
-}
-
-class NetworkException extends ApiException {
-  const NetworkException(super.message);
-
-  @override
-  String toString() => 'NetworkException: $message';
-}
-
-class ServerException extends ApiException {
-  const ServerException(super.message);
-
-  @override
-  String toString() => 'ServerException: $message';
+  ISyncable? getPrototypeForTable(String tableName) => _findPrototypeByTableName(tableName);
 }

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:swan_sync/communications/core/app_dependencies.dart';
+import 'package:swan_sync/communications/core/SWAN_sync.dart';
 
 class ServerReachableWidget extends StatelessWidget {
   const ServerReachableWidget({super.key});
@@ -7,7 +7,7 @@ class ServerReachableWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<bool>(
-      future: AppDependencies().syncController.isServerReachable(),
+      future: SwanSync.syncController.isServerReachable(),
       builder: (context, snapshot) {
         final isReachable = snapshot.data ?? false;
         return Row(

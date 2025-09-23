@@ -11,14 +11,14 @@ SWAN Sync - Synchronization with async negotiation.
    - Built-in conflict resolution methods
    - Declares server endpoints which need to be defined for each model
 
-2. **TodoModel (example)** (`lib/data/models/todo_model.dart`)
+2. **TodoModel (example)** (`lib/example-data/models/todo_model.dart`)
    - Reference implementation of ISyncable
    - Hive-backed local storage
    - Dynamic server endpoints
 
 3. **Communications**
-   - `ApiService` - Makes server requests and manages responses
-   - `LocalDatabaseService` - ISyncable-aware storage, monitors fallback system
+   - `Api` - Makes server requests and manages responses
+   - `LocalDatabase` - ISyncable-aware storage, monitors fallback system
    - `SyncController` - Orchestrates sync operations and FCM handling
    - `Communications` - Manages all commmunications with server
    - `Fallback` - Manages fallback communication logic and

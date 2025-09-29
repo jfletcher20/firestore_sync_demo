@@ -1,12 +1,10 @@
+import 'package:flutter/material.dart';
+import 'package:swan_sync/communications/util/fallback/fallback.dart';
 import 'package:swan_sync/data/i_syncable.dart';
 import 'package:swan_sync/swan_sync.dart';
-import 'package:swan_sync_demo/presentation/widgets/server_reachable_widget_refactored.dart';
+import 'package:swan_sync_demo/example-data/models/todo_model.dart';
 import 'package:swan_sync_demo/presentation/widgets/snapshot_error_widget.dart';
 import 'package:swan_sync_demo/presentation/widgets/synced_list_view.dart';
-import 'package:swan_sync_demo/presentation/widgets/no_items_widget.dart';
-import 'package:swan_sync_demo/example-data/models/todo_model.dart';
-
-import 'package:flutter/material.dart';
 
 class TodoSyncDemoScreen extends StatefulWidget {
   const TodoSyncDemoScreen({super.key});
@@ -55,34 +53,12 @@ class _TodoSyncDemoScreenState extends State<TodoSyncDemoScreen> {
           children: [
             Text('Sync Status', style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 8),
-            const ServerReachableWidget(),
-            const SizedBox(height: 8),
-            FutureBuilder<List<ISyncable>>(
-              future: SwanSync.syncController.getItems(tableName),
-              builder: (context, snapshot) {
-                final items = snapshot.data ?? [];
-                final pendingItems = items.where((item) => item.needsSync).length;
-                return Row(
-                  children: [
-                    Icon(
-                      pendingItems > 0 ? Icons.pending_actions : Icons.check_circle,
-                      color: pendingItems > 0 ? Colors.orange : Colors.green,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      '$pendingItems Items Need Sync',
-                      style: TextStyle(
-                        color: pendingItems > 0 ? Colors.orange : Colors.green,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                );
-              },
-            ),
-            const SizedBox(height: 8),
             Text(
               'Registered Tables: ${SwanSync.syncController.getRegisteredTableNames().join(', ')}',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            Text(
+              'In fallback: ${Fallback.queueSize}',
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ],
@@ -137,37 +113,15 @@ class _TodoSyncDemoScreenState extends State<TodoSyncDemoScreen> {
 
   Widget _buildItemsList() {
     return StreamBuilder<List<ISyncable>>(
+      initialData: SwanSync.database.getAllItems(tableName),
       stream: SwanSync.syncController.watchTable(tableName),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
           return SnapshotErrorWidget(snapshot: snapshot, retry: () => setState(() {}));
         }
+        ;
 
-        final items = snapshot.data ?? [];
-
-        // if stream data is empty, load from local database;
-        if (items.isEmpty) {
-          return FutureBuilder<List<ISyncable>>(
-            future: SwanSync.database.getAllItems(tableName),
-            builder: (context, futureSnapshot) {
-              if (futureSnapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
-
-              if (futureSnapshot.hasError) {
-                return SnapshotErrorWidget(snapshot: futureSnapshot, retry: () => setState(() {}));
-              }
-
-              final localItems = futureSnapshot.data ?? [];
-              if (localItems.isEmpty) return const NoItemsWidget();
-
-              final todoItems = localItems.cast<TodoModel>();
-              return SyncedListView(items: todoItems, onUpdate: _updateItem, onDelete: _deleteItem);
-            },
-          );
-        }
-
-        final todoItems = items.cast<TodoModel>();
+        final todoItems = (snapshot.data ?? []).cast<TodoModel>();
         return SyncedListView(items: todoItems, onUpdate: _updateItem, onDelete: _deleteItem);
       },
     );

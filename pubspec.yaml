@@ -20,9 +20,13 @@ dependencies:
   shared_preferences: ^2.3.3
   uuid: ^4.5.1
   json_annotation: ^4.9.0
-  swan_sync:
-    path: DRIVE:/File/Path/To/Module/Root
+  path_provider: ^2.1.5
 
+  swan_sync:
+    git:
+      url: https://github.com/jfletcher20/swan_sync.git
+      ref: main
+  
 dev_dependencies:
   flutter_test:
     sdk: flutter

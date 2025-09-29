@@ -4,6 +4,8 @@ import 'package:swan_sync_demo/presentation/screens/todo_sync_demo_screen.dart';
 import 'package:swan_sync_demo/example-data/models/todo_model.dart';
 import 'package:swan_sync_demo/firebase_options.dart';
 
+import 'package:path_provider/path_provider.dart';
+
 import 'package:firebase_core/firebase_core.dart';
 
 import 'package:swan_sync/swan_sync.dart';
@@ -24,15 +26,22 @@ class _AppInitializerState extends State<AppInitializer> {
       hasInit = true;
     else
       return;
+    // <handle potential auth here>
+
     if (Firebase.apps.isEmpty) {
       await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
     }
 
-    // <auth here>
+    var directory = await getApplicationDocumentsDirectory();
+    if (!directory.existsSync()) {
+      directory.createSync(recursive: true);
+    }
 
+    // <auth here>
     await SwanSync.initialize(
       // register adapter-prototype pairs here
       types: [(adapter: TodoModelAdapter(), prototype: TodoModel.prototype())],
+      path: directory.path,
     );
   }
 
